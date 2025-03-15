@@ -16,7 +16,7 @@ SERVER = '''
 '''
 
 CLIENT = '''
-client{client_n}:
+  client{client_n}:
     container_name: client{client_n}
     image: client:latest
     entrypoint: /client
