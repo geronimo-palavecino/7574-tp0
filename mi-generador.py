@@ -9,8 +9,7 @@ SERVER = '''
     image: server:latest                    
     entrypoint: python3 /main.py            
     environment:                            
-      - PYTHONUNBUFFERED=1                  
-      - LOGGING_LEVEL=DEBUG                 
+      - PYTHONUNBUFFERED=1                               
     networks:                               
       - testing_net
     volumes:
@@ -24,7 +23,6 @@ CLIENT = '''
     entrypoint: /client
     environment:
       - CLI_ID={client_n}
-      - CLI_LOG_LEVEL=DEBUG
     networks:
       - testing_net
     depends_on:
