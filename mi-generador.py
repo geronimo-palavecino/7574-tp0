@@ -12,7 +12,9 @@ SERVER = '''
       - PYTHONUNBUFFERED=1                  
       - LOGGING_LEVEL=DEBUG                 
     networks:                               
-      - testing_net                         
+      - testing_net
+    volumes:
+      - ./server/config.ini:/config.ini
 '''
 
 CLIENT = '''
@@ -26,7 +28,9 @@ CLIENT = '''
     networks:
       - testing_net
     depends_on:
-      - server    
+      - server
+    volumes:
+      - ./client/config.yaml:/config.yaml
 '''
 
 NETWORK = '''
