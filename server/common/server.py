@@ -23,11 +23,11 @@ class Server:
         """
         self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
-        logging.info(f'action: graceful_shutdown | result: success | Welcoming socket closed')
+        logging.info(f'action: graceful_shutdown | result: success | fd: Welcoming socket')
         if self._current_connection != None:
             self._current_connection.shutdown(socket.SHUT_RDWR)
             self._current_connection.close()
-            logging.info(f'action: graceful_shutdown | result: success | Client socket closed')
+            logging.info(f'action: graceful_shutdown | result: success | fd: Client socket')
         sys.exit(0)
 
     def run(self):
