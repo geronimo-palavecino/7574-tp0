@@ -24,9 +24,9 @@ type ClientConfig struct {
 
 // Client Entity that encapsulates how
 type Client struct {
-	config ClientConfig
+	config 	ClientConfig
 	sigChan chan os.Signal
-	conn   net.Conn
+	central CentralLoteriaNacional
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -35,16 +35,16 @@ func NewClient(config ClientConfig) *Client {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM)
 
+	central := NewCentralLoteriaNacional(config.ServerAddress)
+
 	client := &Client{
 		config: config,
 		sigChan: sigChan,
+		central: central,
 	}
 	return client
 }
 
-// CreateClientSocket Initializes client socket. In case of
-// failure, error is printed in stdout/stderr and exit 1
-// is returned
 func (c *Client) createClientSocket() error {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
@@ -59,12 +59,24 @@ func (c *Client) createClientSocket() error {
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) StartClientLoop() {
-	c.ClientLoop()
+func (c *Client) SendBet(bet Bet) {
+	select {
+		case <- c.sigChan:
+			log.Infof("action: graceful_shutdown | result: success | client_id: %v", c.config.ID)
+		default:
+			err := c.central.SendBet(bet)
+			if err != nil {
+				log.Criticalf(
+					"action: connect | result: fail | client_id: %v | error: %v",
+					c.config.ID,
+					err,
+				)
+			}
+	}
 }
 
 // ClientLoop Sen messages to the server until some time threshold is met or a SIGTERM is catched 
-func (c *Client) ClientLoop() {
+/*func (c *Client) ClientLoop() {
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		loopPeriod := time.After(c.config.LoopPeriod)
 			select {
@@ -103,4 +115,4 @@ func (c *Client) ClientLoop() {
 			}
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
-}
+}*/

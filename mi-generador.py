@@ -23,6 +23,12 @@ CLIENT = '''
     entrypoint: /client
     environment:
       - CLI_ID={client_n}
+      - CLI_NOMBRE=Santiago Lionel
+      - NOMBRE=Santiago Lionel
+      - APELLIDO=Lorca
+      - DOCUMENTO=30904465
+      - NACIMIENTO=1999-03-17
+      - NUMERO=7574
     networks:
       - testing_net
     depends_on:
