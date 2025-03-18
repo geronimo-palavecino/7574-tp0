@@ -131,8 +131,6 @@ func main() {
 		Number:		v.GetInt("numero"),
 	}
 
-	log.Infof("%v | %s | %s | %v | %s | %v", bet.Agency, bet.FirstName, bet.LastName, bet.Document, bet.Birthdate, bet.Number)
-
 	client := common.NewClient(clientConfig)
 	client.SendBet(bet)
 }

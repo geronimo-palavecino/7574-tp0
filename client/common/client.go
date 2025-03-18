@@ -1,9 +1,6 @@
 package common
 
 import (
-	"bufio"
-	"fmt"
-	"net"
 	"time"
 	"os"
 	"os/signal"
@@ -45,19 +42,6 @@ func NewClient(config ClientConfig) *Client {
 	return client
 }
 
-func (c *Client) createClientSocket() error {
-	conn, err := net.Dial("tcp", c.config.ServerAddress)
-	if err != nil {
-		log.Criticalf(
-			"action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-	}
-	c.conn = conn
-	return nil
-}
-
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) SendBet(bet Bet) {
 	select {
@@ -72,47 +56,6 @@ func (c *Client) SendBet(bet Bet) {
 					err,
 				)
 			}
+			log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
 	}
 }
-
-// ClientLoop Sen messages to the server until some time threshold is met or a SIGTERM is catched 
-/*func (c *Client) ClientLoop() {
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		loopPeriod := time.After(c.config.LoopPeriod)
-			select {
-				case <- c.sigChan:
-					// Graceful shutdown
-					// nothing to close due to the socket closing after each loop
-					log.Infof("action: graceful_shutdown | result: success | client_id: %v", c.config.ID)
-					return
-				case <- loopPeriod:
-					// Create the connection the server in every loop iteration
-					c.createClientSocket()
-
-					fmt.Fprintf(
-						c.conn,
-						"[CLIENT %v] Message N°%v\n",
-						c.config.ID,
-						msgID,
-					)
-					msg, err := bufio.NewReader(c.conn).ReadString('\n')
-					c.conn.Close()
-			
-					if err != nil {
-						log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-							c.config.ID,
-							err,
-						)
-						return
-					}
-			
-					log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-						c.config.ID,
-						msg,
-					)
-
-					msgID ++
-			}
-	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
-}*/

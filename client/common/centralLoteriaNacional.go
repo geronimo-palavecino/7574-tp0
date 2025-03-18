@@ -4,6 +4,7 @@ import (
 	"net"
 	"bytes"
 	"encoding/binary"
+	"errors"
 )
 
 // CentralLoteriaNacional Entity that encapsulates the communication with the server representing the Central de Loteria Nacional
@@ -30,12 +31,7 @@ func (c *CentralLoteriaNacional) createSocket() error {
 	return err
 }
 
-func (c *CentralLoteriaNacional) SendBet(bet Bet) error {
-	err := c.createSocket()
-	if err != nil {
-		return err
-	}
-
+func (c *CentralLoteriaNacional) writeBet(bet Bet) error {
 	betBytes, err := bet.Bytes()
 	if err != nil {
 		return err
@@ -54,11 +50,53 @@ func (c *CentralLoteriaNacional) SendBet(bet Bet) error {
 
 	message := append(buf.Bytes(), betBytes...)
 
-	// TODO: 
-	// Enviar la longitud de la informacion (for ?)
-	// hacer un for que no para hasta enviar todos los bytes de bet
-	// esperar la respuesta del servidor
-	// hacer un for que no para de leer hasta que se tomaron todos los bytes que indica el servidor
+	// Mechanism to avoid short write
+	for bytesSent := 0;  bytesSent < lenBetBytes + 2; {
+		n, err := c.conn.Write(message[bytesSent:])
+		if err != nil {
+			return err
+		}
+		bytesSent += n
+	}
 	
+	return nil
+}
+
+func (c *CentralLoteriaNacional) readConfirmation() error {
+
+	confirmation := make([]byte, 1)
+	for readBytes := 0; readBytes < 1; {
+		n, err := c.conn.Read(confirmation)
+		if err != nil {
+			return err
+		}
+		readBytes += n
+	}
+
+	if confirmation[0] != 0x00 {
+		return nil
+	}
+
+	return errors.New("Server error while receiving the bet information")
+}
+
+func (c *CentralLoteriaNacional) SendBet(bet Bet) error {
+	err := c.createSocket()
+	if err != nil {
+		return err
+	}
+
+	err = c.writeBet(bet)
+	if err != nil {
+		return err
+	}
+
+	err = c.readConfirmation()
+	if err != nil {
+		return err
+	}
+
+	c.conn.Close()
+
 	return nil
 }	
