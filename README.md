@@ -93,9 +93,29 @@ python3 mi-generador.py $1 $2
 
 En el archivo de Docker Compose de salida se pueden definir volúmenes, variables de entorno y redes con libertad, pero recordar actualizar este script cuando se modifiquen tales definiciones en los sucesivos ejercicios.
 
+#### Resolución
+
+Para la resolución de este ejercicio se optó por crear un script de bash `generar-compose.sh` que recibe como argumentos los parámetros indicados en la consigna, y luego ejecuta un script de python llamado `mi-generador.py` utilizando dichos parámetros. Esto es debido a que considero que es mucho mas fácil (Y poseo mayor familiaridad) el manejo de archivos en python que con el uso de bash.
+
+Para el script de python se definieron 4 constantes las cuales representan los diferentes artefactos dentro del docker-compose a ser creado:
+- COMPOSE: Define el nombre que va a tener el compose, como así el header de los servicios que se declararán a continuación
+- SERVER: Contiene toda la información para poder crear un container de un servidor dentro del proyecto
+- CLIENT: Contiene toda la información para poder crear un container de un cliente dentro del proyecto
+    - Dentro de esta constante se definió un *format specifier* para poder indicar el numero de cliente que será (Esto afecta a la id del mismo, tanto como al nombre del container)
+- NETWORK: Contiene toda la información para crear las redes utilizadas dentro del proyecto
+
+Para resolver la tarea plantead, el script de python, primero abre el archivo en el que se desea especificar el docker-compose. A continuación escribe los artefactos de COMPOSE y SERVER, para luego escribir CLIENTES tantas veces como haya sido especificado. Finalmente, se escribe NETWORK y se cierra el archivo
+
+Para la ejecución de este ejercicio se debe utilizar el comando: `./generar-compose.sh <NOMBRE_DEL_ARCHIVO_DE_SALIDA> <CANTIDAD_DE_CLIENTES>`
+
 ### Ejercicio N°2:
 Modificar el cliente y el servidor para lograr que realizar cambios en el archivo de configuración no requiera reconstruír las imágenes de Docker para que los mismos sean efectivos. La configuración a través del archivo correspondiente (`config.ini` y `config.yaml`, dependiendo de la aplicación) debe ser inyectada en el container y persistida por fuera de la imagen (hint: `docker volumes`).
 
+#### Resolución
+
+Para la resolución de este ejercicio se agrego el atributo de `volumes` a los artefactos SERVER y CLIENT. En dicho atributo se configuró que cada uno de los artefactos debe tomar su respectivo archivo de configuración como volume, provocando que la información de los respectivos archivos se persista por fuera del contenedor.
+
+La ejecución de este ejercicio se realiza de la misma forma que el ejercicio anterior: `./generar-compose.sh <NOMBRE_DEL_ARCHIVO_DE_SALIDA> <CANTIDAD_DE_CLIENTES>`
 
 ### Ejercicio N°3:
 Crear un script de bash `validar-echo-server.sh` que permita verificar el correcto funcionamiento del servidor utilizando el comando `netcat` para interactuar con el mismo. Dado que el servidor es un echo server, se debe enviar un mensaje al servidor y esperar recibir el mismo mensaje enviado.
@@ -104,6 +124,11 @@ En caso de que la validación sea exitosa imprimir: `action: test_echo_server | 
 
 El script deberá ubicarse en la raíz del proyecto. Netcat no debe ser instalado en la máquina _host_ y no se pueden exponer puertos del servidor para realizar la comunicación (hint: `docker network`). `
 
+#### Resolución
+
+Para la resolución de este ejercicio se creo un script de bash `validar-echo-server.sh` el cual crea un contenedor utilizando una imagen de alpine (*) y lo conecta a la red del docker-compose `tp0_testing_net`. A continuación se le indica al container que envíe un mensaje al servidor utilizando netcat. Luego se verifica si la respuesta obtenida es igual al mensaje enviado y se imprime por pantalla si la operación tuvo éxito o no. Finalmente se para y remueve el contenedor.
+
+(*) Alpine es una distribución liviana de ubuntu, que posee pre-instalado netcat. Debido a estas dos características, fue seleccionado como imagen para la creación del container
 
 ### Ejercicio N°4:
 Modificar servidor y cliente para que ambos sistemas terminen de forma _graceful_ al recibir la signal SIGTERM. Terminar la aplicación de forma _graceful_ implica que todos los _file descriptors_ (entre los que se encuentran archivos, sockets, threads y procesos) deben cerrarse correctamente antes que el thread de la aplicación principal muera. Loguear mensajes en el cierre de cada recurso (hint: Verificar que hace el flag `-t` utilizado en el comando `docker compose down`).
