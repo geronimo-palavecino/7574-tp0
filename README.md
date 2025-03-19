@@ -128,6 +128,8 @@ El script deberá ubicarse en la raíz del proyecto. Netcat no debe ser instalad
 
 Para la resolución de este ejercicio se creo un script de bash `validar-echo-server.sh` el cual crea un contenedor utilizando una imagen de alpine (*) y lo conecta a la red del docker-compose `tp0_testing_net`. A continuación se le indica al container que envíe un mensaje al servidor utilizando netcat. Luego se verifica si la respuesta obtenida es igual al mensaje enviado y se imprime por pantalla si la operación tuvo éxito o no. Finalmente se para y remueve el contenedor.
 
+Para la ejecución de este ejercicio se debe utilizar el siguiente comando: `./validar-echo-server.sh`
+
 (*) Alpine es una distribución liviana de ubuntu, que posee pre-instalado netcat. Debido a estas dos características, fue seleccionado como imagen para la creación del container
 
 ### Ejercicio N°4:
