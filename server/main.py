@@ -2,6 +2,7 @@
 
 from configparser import ConfigParser
 from common.server import Server
+from common.agencia_quiniela_listener import AgenciaQuinielaListener
 import logging
 import os
 
@@ -48,7 +49,8 @@ def main():
                   f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
     # Initialize server and start server loop
-    server = Server(port, listen_backlog)
+    quiniela_listener = AgenciaQuinielaListener(port, listen_backlog)
+    server = Server(quiniela_listener)
     server.run()
 
 def initialize_log(logging_level):
