@@ -16,8 +16,14 @@ class AgenciaQuinielaListener:
         Function blocks until a connection to a client is made.
         Then connection created is printed and returned
         """
-
         # Connection arrived
         c, _ = self._welcoming_socket.accept()
         quiniela = AgenciaQuiniela(c)
         return quiniela
+    
+    def close(self):
+        """ 
+        Closes the underlying socket
+        """
+        self._welcoming_socket.shutdown(socket.SHUT_RDWR)
+        self._welcoming_socket.close()

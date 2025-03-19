@@ -1,3 +1,4 @@
+import socket
 from common.bet import *
 
 """ packet size fields size"""
@@ -30,17 +31,20 @@ class AgenciaQuiniela:
         Then the bytes are decoded into a Bet which is later returned
         """
         try:
+            # First the length of the packet is read avoiding short reads
             bet_len = bytearray(PACKET_SIZE_SIZE)
             read_bytes = 0
             while read_bytes < PACKET_SIZE_SIZE:
                 read_bytes += self.socket.recv_into(bet_len, 2)
             
+            # A buffer of the packet size is created. Then the whole data is read avoiding short reads
             bet_len = int.from_bytes(bytes(bet_len[:]), "big")
             bet_data = bytearray(bet_len)
             read_bytes = 0
             while read_bytes < bet_len:
                 read_bytes += self.socket.recv_into(bet_data, bet_len - read_bytes)
         
+            # The bet is decoded from its bytes representation
             bet = Bet.from_bytes(bet_data)
 
             return bet
@@ -60,4 +64,5 @@ class AgenciaQuiniela:
         """ 
         Closes the underlying connection
         """
+        self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()

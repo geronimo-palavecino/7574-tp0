@@ -23,11 +23,9 @@ class Server:
         When the application receives a SIGTERM signal, all the file descriptors 
         (welcoming socket, and client current socket) are closed for a graceful shutdown
         """
-        self._server_socket.shutdown(socket.SHUT_RDWR)
-        self._server_socket.close()
+        self._listener.close()
         logging.info(f'action: graceful_shutdown | result: success | fd: Welcoming socket')
         if self._current_connection != None:
-            self._current_connection.shutdown(socket.SHUT_RDWR)
             self._current_connection.close()
             logging.info(f'action: graceful_shutdown | result: success | fd: Client socket')
         sys.exit(0)
@@ -40,7 +38,6 @@ class Server:
         communication with a client. After client with communication
         finishes, servers starts to accept new connections again
         """
-
         while True:
             client_sock = self.__accept_new_connection()
             self.__handle_client_connection(client_sock)
@@ -58,7 +55,7 @@ class Server:
             quiniela.confirm_bet(1)
             logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
         except Exception as e:
-            logging.error("action: apuesta_almacenada | result: fail | error: {e}")
+            logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
         finally:
             quiniela.close()
             self._current_connection = None
@@ -70,7 +67,6 @@ class Server:
         Function blocks until a connection to a client is made.
         Then connection created is printed and returned
         """
-
         # Connection arrived
         logging.info('action: accept_connections | result: in_progress')
         quiniela = self._listener.accept_new_connection()

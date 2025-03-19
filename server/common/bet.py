@@ -43,20 +43,32 @@ class Bet:
         """
         try: 
             pos = 0
+
+            # Decoding the agency id field
             agency = int.from_bytes(bytes(data[pos:pos+AGENCY_SIZE]), "big")
             pos += AGENCY_SIZE
+
+            # Decoding the first name field
             len_first_name = int.from_bytes(bytes(data[pos:pos+FIRST_NAME_SIZE]), "big")
             pos += FIRST_NAME_SIZE
             first_name = bytes(data[pos:pos+len_first_name]).decode()
             pos += len_first_name
+
+            # Decoding the last name field
             len_last_name = int.from_bytes(bytes(data[pos:pos+LAST_NAME_SIZE]), "big")
             pos += LAST_NAME_SIZE
             last_name = bytes(data[pos:pos+len_last_name]).decode()
             pos += len_last_name
+
+            # Decoding the document field
             document = int.from_bytes(bytes(data[pos:pos+DOCUMENT_SIZE]), "big")
             pos += DOCUMENT_SIZE
+
+            # Decoding the birthdate field
             birthdate = bytes(data[pos:pos+BIRTHDATE_SIZE]).decode()
             pos += BIRTHDATE_SIZE
+
+            # Decoding the number field
             number = int.from_bytes(bytes(data[pos:pos+NUMBER_SIZE]), "big")
 
             return cls(

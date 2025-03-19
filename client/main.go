@@ -131,6 +131,7 @@ func main() {
 		Number:		v.GetInt("numero"),
 	}
 
-	client := common.NewClient(clientConfig)
+	central := common.NewCentralLoteriaNacional(clientConfig.ServerAddress)
+	client := common.NewClient(clientConfig, central)
 	client.SendBet(bet)
 }

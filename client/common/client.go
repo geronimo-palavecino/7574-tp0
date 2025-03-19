@@ -28,11 +28,9 @@ type Client struct {
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig) *Client {
+func NewClient(config ClientConfig, central CentralLoteriaNacional) *Client {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM)
-
-	central := NewCentralLoteriaNacional(config.ServerAddress)
 
 	client := &Client{
 		config: config,
