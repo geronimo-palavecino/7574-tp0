@@ -51,77 +51,31 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
-        # try:
-        #     logging.info(f'Step 1')
-
-        #     bet_len = bytearray(2)
-        #     while len(bet_len) < 2:
-        #         logging.info(f'')
-        #         client_sock.recv_into(bet_len, 2)
-        #         logging.info(f'this are the bytes {bet_len}')
+        try:
+            bet_len = bytearray(2)
+            read_bytes = 0
+            while read_bytes < 2:
+                read_bytes += client_sock.recv_into(bet_len, 2)
             
-        #     logging.info(f'Step 2')
+            bet_len = int.from_bytes(bytes(bet_len[:]), "big")
+            bet_data = bytearray(bet_len)
+            read_bytes = 0
+            while read_bytes < bet_len:
+                read_bytes += client_sock.recv_into(bet_data, bet_len - read_bytes)
+        
+            bet = Bet.from_bytes(bet_data)
+
+            store_bets([bet])
+
+            client_sock.send(bytes([0x01]))
+
+            logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
             
-        #     bet_len = int.from_bytes(bytes(bet_len[:]), "big")
-        #     bet_data = bytearray(65538)
-        #     while len(bet_data) < bet_len:
-        #         client_sock.recv_into(bet_data, bet_len - len(bet_data))
-            
-        #     logging.info(f'Step 3')
-
-        #     bet = Bet.from_bytes(bet_data)
-
-        #     logging.info(f'{bet.agency}')
-
-        #     store_bets([bet])
-
-        #     client_sock.sendall("0".encode('ascii'))
-
-        #     logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
-            
-        # except Exception as e:
-        #     logging.error("action: apuesta_almacenada | result: fail | error: {e}")
-        # finally:
-        #     client_sock.close()
-        #     self._current_connection = None
-
-
-
-
-
-
-
-        message = client_sock.recv(1024)
-
-        logging.info(f'Step 1: {message}')
-
-        bet_len = bytearray(2)
-        while len(bet_len) < 2:
-            logging.info(f'')
-            client_sock.recv_into(bet_len, 2)
-            logging.info(f'this are the bytes {bet_len}')
-        
-        logging.info(f'Step 2: {bet_len}')
-        
-        bet_len = int.from_bytes(bytes(bet_len[:]), "big")
-        bet_data = bytearray(65538)
-        while len(bet_data) < bet_len:
-            client_sock.recv_into(bet_data, bet_len - len(bet_data))
-        
-        logging.info(f'Step 3: {bet_data}')
-
-        bet = Bet.from_bytes(bet_data)
-
-        logging.info(f'{bet.agency}')
-
-        store_bets([bet])
-
-        client_sock.sendall("0".encode('ascii'))
-
-        logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
-        
-        client_sock.close()
-        self._current_connection = None
+        except Exception as e:
+            logging.error("action: apuesta_almacenada | result: fail | error: {e}")
+        finally:
+            client_sock.close()
+            self._current_connection = None
 
     def __accept_new_connection(self):
         """

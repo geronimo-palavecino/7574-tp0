@@ -37,15 +37,15 @@ class Bet:
             pos += 4
             len_first_name = int.from_bytes(bytes(data[pos:pos+1]), "big")
             pos += 1
-            first_name = bytes(data[pos:pos+len_first_name])
+            first_name = bytes(data[pos:pos+len_first_name]).decode()
             pos += len_first_name
             len_last_name = int.from_bytes(bytes(data[pos:pos+1]), "big")
             pos += 1
             last_name = bytes(data[pos:pos+len_last_name]).decode()
             pos += len_last_name
             document = int.from_bytes(bytes(data[pos:pos+4]), "big")
-            pos += 1
-            birthdate = datetime.date.fromisoformat(bytes(data[pos:pos+10]).decode())
+            pos += 4
+            birthdate = bytes(data[pos:pos+10]).decode()
             pos += 10
             number = int.from_bytes(bytes(data[pos:pos+4]), "big")
 
