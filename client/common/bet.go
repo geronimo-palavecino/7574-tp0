@@ -16,6 +16,7 @@ type Bet struct {
 	Number 		int
 }
 
+// Bytes Encodes a Bet into its bytes representation
 func (b *Bet) Bytes() ([]byte, error) {
 	var buf bytes.Buffer
 

@@ -1,5 +1,19 @@
 import datetime
 
+""" agency field byte size """
+AGENCY_SIZE = 4
+""" first_name length field byte size """
+FIRST_NAME_SIZE = 1
+""" last_name lenght field byte size """
+LAST_NAME_SIZE = 1
+""" document field byte size """
+DOCUMENT_SIZE = 4
+""" birthdate field byte size """
+BIRTHDATE_SIZE = 10
+""" number field byte size """
+NUMBER_SIZE = 4
+
+""" Error representing that a problem occurred while decoding a bet from a bytes encoding """
 class DecodingError(Exception):
     def __init__(self, message="An error occurred while decoding the bet"):
         self.message = message
@@ -23,23 +37,27 @@ class Bet:
     
     @classmethod
     def from_bytes(cls, data):
+        """
+        If possible converts a bytes representation into a Bet structure
+        In case of not being posible, a DecodingError exception is raised
+        """
         try: 
             pos = 0
-            agency = int.from_bytes(bytes(data[pos:pos+4]), "big")
-            pos += 4
-            len_first_name = int.from_bytes(bytes(data[pos:pos+1]), "big")
-            pos += 1
+            agency = int.from_bytes(bytes(data[pos:pos+AGENCY_SIZE]), "big")
+            pos += AGENCY_SIZE
+            len_first_name = int.from_bytes(bytes(data[pos:pos+FIRST_NAME_SIZE]), "big")
+            pos += FIRST_NAME_SIZE
             first_name = bytes(data[pos:pos+len_first_name]).decode()
             pos += len_first_name
-            len_last_name = int.from_bytes(bytes(data[pos:pos+1]), "big")
-            pos += 1
+            len_last_name = int.from_bytes(bytes(data[pos:pos+LAST_NAME_SIZE]), "big")
+            pos += LAST_NAME_SIZE
             last_name = bytes(data[pos:pos+len_last_name]).decode()
             pos += len_last_name
-            document = int.from_bytes(bytes(data[pos:pos+4]), "big")
-            pos += 4
-            birthdate = bytes(data[pos:pos+10]).decode()
-            pos += 10
-            number = int.from_bytes(bytes(data[pos:pos+4]), "big")
+            document = int.from_bytes(bytes(data[pos:pos+DOCUMENT_SIZE]), "big")
+            pos += DOCUMENT_SIZE
+            birthdate = bytes(data[pos:pos+BIRTHDATE_SIZE]).decode()
+            pos += BIRTHDATE_SIZE
+            number = int.from_bytes(bytes(data[pos:pos+NUMBER_SIZE]), "big")
 
             return cls(
                 agency,

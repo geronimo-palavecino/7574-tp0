@@ -1,6 +1,7 @@
 import socket
 from common.agencia_quiniela import *
 
+""" A listener for Agencias de Quiniela connections """
 class AgenciaQuinielaListener:
     def __init__(self, port, listen_backlog):
         #Initialize welcoming socket

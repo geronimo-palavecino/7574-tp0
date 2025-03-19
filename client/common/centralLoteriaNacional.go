@@ -31,6 +31,8 @@ func (c *CentralLoteriaNacional) createSocket() error {
 	return err
 }
 
+// writeBet Sends the given Bet, in its byte representation
+// though the underlying connection
 func (c *CentralLoteriaNacional) writeBet(bet Bet) error {
 	betBytes, err := bet.Bytes()
 	if err != nil {
@@ -62,6 +64,7 @@ func (c *CentralLoteriaNacional) writeBet(bet Bet) error {
 	return nil
 }
 
+// readConfirmation Reads the amount of bets the server read from a packet
 func (c *CentralLoteriaNacional) readConfirmation() error {
 
 	confirmation := make([]byte, 1)
@@ -80,6 +83,8 @@ func (c *CentralLoteriaNacional) readConfirmation() error {
 	return errors.New("Server error while receiving the bet information")
 }
 
+// sendBet Sends the given Bet through the underlying connection, and waits for
+// confirmation of reception
 func (c *CentralLoteriaNacional) SendBet(bet Bet) error {
 	err := c.createSocket()
 	if err != nil {
