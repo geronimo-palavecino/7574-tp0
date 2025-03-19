@@ -1,13 +1,16 @@
 import socket
 from common.bet import *
 
-""" packet size fields size"""
-PACKET_SIZE_SIZE = 2
+""" bet size fields size"""
+BET_SIZE_SIZE = 2
+""" number of bets field size"""
+N_BETS_SIZE = 2
 
 """ Error representing that a problem occurred while reading from the socket """
 class ReadingError(Exception):
-    def __init__(self, message="An error occurred while reading a bet from the Agencia de Quiniela"):
+    def __init__(self, decoded_bets=[], message="An error occurred while reading a bet from the Agencia de Quiniela"):
         self.message = message
+        self.decoded_bets = decoded_bets
         super().__init__(self.message)
 
 """ Error representing that a problem occurred while writing a confirmation into the socket """
@@ -24,39 +27,34 @@ class AgenciaQuiniela:
     def address(self):
         """ Returns the address of the peer connected """
         return self.socket.getpeername()
-    
-    def get_bet(self):
+
+    def get_bets(self):
         """ 
-        Reads a bet bytes representation from the underlying socket.
-        Then the bytes are decoded into a Bet which is later returned
+        Reads a series of bets from the underlying socket
+        If the operation is successful the function returns a list with all the bets. If not, a ReadingError exception is raised.
         """
         try:
-            # First the length of the packet is read avoiding short reads
-            bet_len = bytearray(PACKET_SIZE_SIZE)
-            read_bytes = 0
-            while read_bytes < PACKET_SIZE_SIZE:
-                read_bytes += self.socket.recv_into(bet_len, 2)
-            
-            # A buffer of the packet size is created. Then the whole data is read avoiding short reads
-            bet_len = int.from_bytes(bytes(bet_len[:]), "big")
-            bet_data = bytearray(bet_len)
-            read_bytes = 0
-            while read_bytes < bet_len:
-                read_bytes += self.socket.recv_into(bet_data, bet_len - read_bytes)
-        
-            # The bet is decoded from its bytes representation
-            bet = Bet.from_bytes(bet_data)
+            # bet_len = int.from_bytes(bytes(bet_len[:]), "big")
+            n_bets = int.from_bytes(read_data(self.socket, N_BETS_SIZE))
 
-            return bet
+            bets = []
+
+            for _ in range(n_bets):
+                bet_len = int.from_bytes(read_data(self.socket, BET_SIZE_SIZE))
+                bet_data = read_data(self.socket, bet_len)
+                bet = Bet.from_bytes(bet_data)
+                bets.append(bet)
+
+            return bets
         except Exception as e:
-            raise ReadingError
+            raise ReadingError(decoded_bets=bets)
 
-    def confirm_bet(self, code):
+    def confirm_bets(self, n):
         """ 
         Writes into the underlying connection the amount of bets read
         """
         try:
-            self.socket.sendall(code.to_bytes(1, byteorder='big'))
+            self.socket.sendall(n.to_bytes(2, byteorder='big'))
         except Exception as e:
             raise WritingError
     
@@ -66,3 +64,15 @@ class AgenciaQuiniela:
         """
         self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
+
+def read_data(socket, n):
+    """ 
+    Reads n bytes from the given socket
+    """
+    # The data is read avoiding short reads
+    data = bytearray(n)
+    read_bytes = 0
+    while read_bytes < n:
+        read_bytes += socket.recv_into(data, n - read_bytes)
+    
+    return data

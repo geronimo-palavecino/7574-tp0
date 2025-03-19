@@ -50,12 +50,14 @@ class Server:
         client socket will also be closed
         """
         try:        
-            bet = quiniela.get_bet()
-            store_bets([bet])
-            quiniela.confirm_bet(1)
-            logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
+            bets = quiniela.get_bets()
+            store_bets(bets)
+            quiniela.confirm_bets(len(bets))
+            logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
+        except ReadingError as e:
+            logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(e.decoded_bets)}")
         except Exception as e:
-            logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
+            logging.error(f"action: unexpected_error | result: fail | error: {e}")
         finally:
             quiniela.close()
             self._current_connection = None
