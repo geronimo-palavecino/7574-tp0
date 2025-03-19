@@ -93,6 +93,21 @@ python3 mi-generador.py $1 $2
 
 En el archivo de Docker Compose de salida se pueden definir volúmenes, variables de entorno y redes con libertad, pero recordar actualizar este script cuando se modifiquen tales definiciones en los sucesivos ejercicios.
 
+#### Resolución
+
+Para la resolución de este ejercicio se optó por crear un script de bash `generar-compose.sh` que recibe como argumentos los parámetros indicados en la consigna, y luego ejecuta un script de python llamado `mi-generador.py` utilizando dichos parámetros. Esto es debido a que considero que es mucho mas fácil (Y poseo mayor familiaridad) el manejo de archivos en python que con el uso de bash.
+
+Para el script de python se definieron 4 constantes las cuales representan los diferentes artefactos dentro del docker-compose a ser creado:
+- COMPOSE: Define el nombre que va a tener el compose, como así el header de los servicios que se declararán a continuación
+- SERVER: Contiene toda la información para poder crear un container de un servidor dentro del proyecto
+- CLIENT: Contiene toda la información para poder crear un container de un cliente dentro del proyecto
+    - Dentro de esta constante se definió un *format specifier* para poder indicar el numero de cliente que será (Esto afecta a la id del mismo, tanto como al nombre del container)
+- NETWORK: Contiene toda la información para crear las redes utilizadas dentro del proyecto
+
+Para resolver la tarea plantead, el script de python, primero abre el archivo en el que se desea especificar el docker-compose. A continuación escribe los artefactos de COMPOSE y SERVER, para luego escribir CLIENTES tantas veces como haya sido especificado. Finalmente, se escribe NETWORK y se cierra el archivo
+
+Para la ejecución de este ejercicio se debe utilizar el comando: `./generar-compose.sh <NOMBRE_DEL_ARCHIVO_DE_SALIDA> <CANTIDAD_DE_CLIENTES>`
+
 ### Ejercicio N°2:
 Modificar el cliente y el servidor para lograr que realizar cambios en el archivo de configuración no requiera reconstruír las imágenes de Docker para que los mismos sean efectivos. La configuración a través del archivo correspondiente (`config.ini` y `config.yaml`, dependiendo de la aplicación) debe ser inyectada en el container y persistida por fuera de la imagen (hint: `docker volumes`).
 
