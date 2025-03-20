@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"os"
 	"strings"
+	"strconv"
+	"time"
 )
+
 //FIRST_NAME_INDEX Index where the first name field of a bet is found in the csv
 const FIRST_NAME_INDEX = 0
 //LAST_NAME_INDEX Index where the last name field of a bet is found in the csv
@@ -18,14 +21,14 @@ const NUMBER_INDEX = 4
 
 // BetRepository Entity that manages the bets
 type BetRepository struct {
-	filePath String
-	file *File
-	scanner *Scanner
+	filePath string
+	file 	 *os.File
+	scanner  *bufio.Scanner
 }
 
 // NewClient Initializes a new BetRepository receiving the filePath
 // of the file to open as a parameter
-func NewBetRepository(filePath String) (*BetRepository, error) {
+func NewBetRepository(filePath string) (*BetRepository, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -41,19 +44,35 @@ func NewBetRepository(filePath String) (*BetRepository, error) {
 	return betRepo, nil
 }
 
-func (r *BetRepository) GetBets(amount int32, agency int32) (Bets, error) {
+func (r *BetRepository) GetBets(amount int, agency int) ([]Bet, error) {
 	betsRead := 0 
 	bets := make([]Bet, amount)
 	
 	for r.scanner.Scan() && betsRead < amount {
-		betData := strings.Split(scanner.Text(), ",")
-		bet = Bet{
+		betData := strings.Split(r.scanner.Text(), ",")
+
+		birthdate, err := time.Parse("2006-01-02", betData[BIRTHDATE_INDEX])
+		if err != nil {
+			return nil, err
+		}
+
+		document, err := strconv.Atoi(betData[DOCUMENT_INDEX])
+		if err != nil {
+			return nil, err
+		}
+
+		number, err := strconv.Atoi(betData[NUMBER_INDEX])
+		if err != nil {
+			return nil, err
+		}
+
+		bet := Bet{
 			Agency: agency,
 			FirstName: betData[FIRST_NAME_INDEX],
 			LastName: betData[LAST_NAME_INDEX],
-			Document: betData[DOCUMENT_INDEX],
-			Birthdate: betData[BIRTHDATE_INDEX],
-			Number: betData[NUMBER_INDEX],
+			Document: document,
+			Birthdate: birthdate,
+			Number: number,
 		}
 
 		bets[betsRead] = bet

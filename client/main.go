@@ -112,7 +112,7 @@ func main() {
 
 	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
-		ID:            v.GetString("id"),
+		ID:            v.GetInt("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
 		Batch:		   15,
@@ -132,7 +132,8 @@ func main() {
 	// 	Number:		v.GetInt("numero"),
 	// }
 
-	repo, err := common.NewBetRepository("agency-%v.csv", v.GetInt("id"))
+	file := fmt.Sprintf("agency-%v.csv", v.GetInt("id"))
+	repo, err := common.NewBetRepository(file)
 	if err != nil {
 		log.Criticalf("%s", err)
 	}
