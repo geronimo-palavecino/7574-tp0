@@ -1,3 +1,4 @@
+import logging
 import socket
 from common.bet import *
 
@@ -33,20 +34,19 @@ class AgenciaQuiniela:
         Reads a series of bets from the underlying socket
         If the operation is successful the function returns a list with all the bets. If not, a ReadingError exception is raised.
         """
+        bets = []
+        
         try:
-            # bet_len = int.from_bytes(bytes(bet_len[:]), "big")
-            n_bets = int.from_bytes(read_data(self.socket, N_BETS_SIZE))
-
-            bets = []
+            n_bets = int.from_bytes(read_data(self.socket, N_BETS_SIZE), "big")
 
             for _ in range(n_bets):
-                bet_len = int.from_bytes(read_data(self.socket, BET_SIZE_SIZE))
+                bet_len = int.from_bytes(read_data(self.socket, BET_SIZE_SIZE), "big")
                 bet_data = read_data(self.socket, bet_len)
                 bet = Bet.from_bytes(bet_data)
                 bets.append(bet)
 
             return bets
-        except Exception as e:
+        except Exception as _:
             raise ReadingError(decoded_bets=bets)
 
     def confirm_bets(self, n):
@@ -55,7 +55,7 @@ class AgenciaQuiniela:
         """
         try:
             self.socket.sendall(n.to_bytes(2, byteorder='big'))
-        except Exception as e:
+        except Exception as _:
             raise WritingError
     
     def close(self):

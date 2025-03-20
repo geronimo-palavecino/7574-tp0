@@ -41,19 +41,20 @@ func NewClient(config ClientConfig, central CentralLoteriaNacional) *Client {
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) SendBet(bet Bet) {
+func (c *Client) SendBets(bets []Bet) {
 	select {
 		case <- c.sigChan:
 			log.Infof("action: graceful_shutdown | result: success | client_id: %v", c.config.ID)
 		default:
-			err := c.central.SendBet(bet)
+			err := c.central.SendBets(bets)
 			if err != nil {
 				log.Criticalf(
 					"action: connect | result: fail | client_id: %v | error: %v",
 					c.config.ID,
 					err,
 				)
+				return
 			}
-			log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
+			log.Infof("action: apuesta_enviada | result: success | cantidad: %v", len(bets))
 	}
 }

@@ -133,5 +133,5 @@ func main() {
 
 	central := common.NewCentralLoteriaNacional(clientConfig.ServerAddress)
 	client := common.NewClient(clientConfig, central)
-	client.SendBet(bet)
+	client.SendBets([]common.Bet{bet})
 }

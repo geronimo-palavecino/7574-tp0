@@ -33,28 +33,38 @@ func (c *CentralLoteriaNacional) createSocket() error {
 
 // writeBet Sends the given Bet, in its byte representation
 // though the underlying connection
-func (c *CentralLoteriaNacional) writeBet(bet Bet) error {
-	betBytes, err := bet.Bytes()
-	if err != nil {
-		return err
-	}
-
-	// The two added extra bytes are used to indicate the server the total
-	//length of the message sent
-	lenBetBytes := len(betBytes)
-
+func (c *CentralLoteriaNacional) writeBet(bets []Bet) error {
 	var buf bytes.Buffer
+	packet_size := 0
 
-	err = binary.Write(&buf, binary.BigEndian, int16(lenBetBytes))
+	// The amount of bets to be send is codified and added to buf
+	err := binary.Write(&buf, binary.BigEndian, int16(len(bets)))
 	if err != nil {
 		return err
 	}
+	packet_size += 2
 
-	message := append(buf.Bytes(), betBytes...)
+	for n := 0; n < len(bets); n++ {
+		betBytes, err := bets[n].Bytes()
+		if err != nil {
+			return err
+		}
+
+		lenBetBytes := len(betBytes)
+		err = binary.Write(&buf, binary.BigEndian, int16(lenBetBytes))
+		if err != nil {
+			return err
+		}
+		packet_size += 2
+
+		buf.Write(betBytes)
+		packet_size += lenBetBytes
+	}
 
 	// Mechanism to avoid short write
-	for bytesSent := 0;  bytesSent < lenBetBytes + 2; {
-		n, err := c.conn.Write(message[bytesSent:])
+	packet := buf.Bytes()
+	for bytesSent := 0;  bytesSent < packet_size; {
+		n, err := c.conn.Write(packet[bytesSent:])
 		if err != nil {
 			return err
 		}
@@ -67,16 +77,22 @@ func (c *CentralLoteriaNacional) writeBet(bet Bet) error {
 // readConfirmation Reads the amount of bets the server read from a packet
 func (c *CentralLoteriaNacional) readConfirmation() error {
 
-	confirmation := make([]byte, 1)
-	for readBytes := 0; readBytes < 1; {
-		n, err := c.conn.Read(confirmation)
+	data := make([]byte, 2)
+	for readBytes := 0; readBytes < 2; {
+		n, err := c.conn.Read(data)
 		if err != nil {
 			return err
 		}
 		readBytes += n
 	}
 
-	if confirmation[0] != 0x00 {
+	var bets_read int16
+	err := binary.Read(bytes.NewReader(data), binary.BigEndian, &bets_read)
+	if err != nil {
+		return err
+	}
+
+	if bets_read != 0 {
 		return nil
 	}
 
@@ -85,13 +101,13 @@ func (c *CentralLoteriaNacional) readConfirmation() error {
 
 // sendBet Sends the given Bet through the underlying connection, and waits for
 // confirmation of reception
-func (c *CentralLoteriaNacional) SendBet(bet Bet) error {
+func (c *CentralLoteriaNacional) SendBets(bets []Bet) error {
 	err := c.createSocket()
 	if err != nil {
 		return err
 	}
 
-	err = c.writeBet(bet)
+	err = c.writeBet(bets)
 	if err != nil {
 		return err
 	}
