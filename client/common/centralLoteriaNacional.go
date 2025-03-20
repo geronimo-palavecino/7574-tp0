@@ -7,6 +7,11 @@ import (
 	"errors"
 )
 
+// BET_SIZE_SIZE Represents the size in bytes of the bet size field in the packet
+const BET_SIZE_SIZE = 2
+// AMOUNT_BETS_SIZE Represents the size in bytes of the amount of bets field in the packet
+const AMOUNT_BETS_SIZE = 2
+
 // CentralLoteriaNacional Entity that encapsulates the communication with the server representing the Central de Loteria Nacional
 type CentralLoteriaNacional struct {
 	Address string
@@ -42,7 +47,7 @@ func (c *CentralLoteriaNacional) writeBet(bets []Bet) error {
 	if err != nil {
 		return err
 	}
-	packet_size += 2
+	packet_size += AMOUNT_BETS_SIZE
 
 	for n := 0; n < len(bets); n++ {
 		betBytes, err := bets[n].Bytes()
@@ -55,7 +60,7 @@ func (c *CentralLoteriaNacional) writeBet(bets []Bet) error {
 		if err != nil {
 			return err
 		}
-		packet_size += 2
+		packet_size += BET_SIZE_SIZE
 
 		buf.Write(betBytes)
 		packet_size += lenBetBytes
@@ -76,9 +81,8 @@ func (c *CentralLoteriaNacional) writeBet(bets []Bet) error {
 
 // readConfirmation Reads the amount of bets the server read from a packet
 func (c *CentralLoteriaNacional) readConfirmation() error {
-
-	data := make([]byte, 2)
-	for readBytes := 0; readBytes < 2; {
+	data := make([]byte, AMOUNT_BETS_SIZE)
+	for readBytes := 0; readBytes < AMOUNT_BETS_SIZE; {
 		n, err := c.conn.Read(data)
 		if err != nil {
 			return err

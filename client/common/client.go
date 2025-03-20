@@ -17,6 +17,7 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
+	Batch 		  int
 }
 
 // Client Entity that encapsulates how
@@ -24,11 +25,12 @@ type Client struct {
 	config 	ClientConfig
 	sigChan chan os.Signal
 	central CentralLoteriaNacional
+	repo BetRepository
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig, central CentralLoteriaNacional) *Client {
+func NewClient(config ClientConfig, central CentralLoteriaNacional, repo BetRepository) *Client {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM)
 
@@ -36,16 +38,19 @@ func NewClient(config ClientConfig, central CentralLoteriaNacional) *Client {
 		config: config,
 		sigChan: sigChan,
 		central: central,
+		repo: repo
 	}
 	return client
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) SendBets(bets []Bet) {
+func (c *Client) SendBets() {
 	select {
 		case <- c.sigChan:
+			c.repo.close()
 			log.Infof("action: graceful_shutdown | result: success | client_id: %v", c.config.ID)
 		default:
+			bets := c.repo.GetBets(c.config.Batch, c.config.ID)
 			err := c.central.SendBets(bets)
 			if err != nil {
 				log.Criticalf(

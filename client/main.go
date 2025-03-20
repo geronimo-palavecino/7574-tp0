@@ -115,23 +115,30 @@ func main() {
 		ID:            v.GetString("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
+		Batch:		   15,
 	}
 
-	date, err := time.Parse("2006-01-02", v.GetString("nacimiento"))
+	// date, err := time.Parse("2006-01-02", v.GetString("nacimiento"))
+	// if err != nil {
+	// 	log.Criticalf("%s", err)
+	// }
+
+	// bet := common.Bet{
+	// 	Agency:		v.GetInt("id"),
+	// 	FirstName:	v.GetString("nombre"),
+	// 	LastName:	v.GetString("apellido"),
+	// 	Document: 	v.GetInt("documento"),
+	// 	Birthdate:	date,
+	// 	Number:		v.GetInt("numero"),
+	// }
+
+	repo, err := common.NewBetRepository("agency-%v.csv", v.GetInt("id"))
 	if err != nil {
 		log.Criticalf("%s", err)
 	}
 
-	bet := common.Bet{
-		Agency:		v.GetInt("id"),
-		FirstName:	v.GetString("nombre"),
-		LastName:	v.GetString("apellido"),
-		Document: 	v.GetInt("documento"),
-		Birthdate:	date,
-		Number:		v.GetInt("numero"),
-	}
-
 	central := common.NewCentralLoteriaNacional(clientConfig.ServerAddress)
-	client := common.NewClient(clientConfig, central)
-	client.SendBets([]common.Bet{bet})
+
+	client := common.NewClient(clientConfig, central, repo)
+	client.SendBets()
 }

@@ -34,6 +34,7 @@ CLIENT = '''
       - server
     volumes:
       - ./client/config.yaml:/config.yaml
+      - ./.data/agency-{client_n}.csv:/agency-{client_n}.csv
 '''
 
 NETWORK = '''
