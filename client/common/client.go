@@ -53,6 +53,7 @@ func (c *Client) SendBet(bet Bet) {
 					c.config.ID,
 					err,
 				)
+				return
 			}
 			log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
 	}

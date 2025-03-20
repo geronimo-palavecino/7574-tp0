@@ -7,6 +7,11 @@ import (
 	"errors"
 )
 
+// BET_SIZE_SIZE Represents the size in bytes of the bet size field in the packet
+const BET_SIZE_SIZE = 2
+// RESPONSE_CODE_SIZE Represents the size in bytes of the response code from the server
+const RESPONSE_CODE_SIZE = 2
+
 // CentralLoteriaNacional Entity that encapsulates the communication with the server representing the Central de Loteria Nacional
 type CentralLoteriaNacional struct {
 	Address string
@@ -34,27 +39,28 @@ func (c *CentralLoteriaNacional) createSocket() error {
 // writeBet Sends the given Bet, in its byte representation
 // though the underlying connection
 func (c *CentralLoteriaNacional) writeBet(bet Bet) error {
+	var buf bytes.Buffer
+	packetSize := 0
+	
 	betBytes, err := bet.Bytes()
 	if err != nil {
 		return err
 	}
 
-	// The two added extra bytes are used to indicate the server the total
-	//length of the message sent
 	lenBetBytes := len(betBytes)
-
-	var buf bytes.Buffer
-
 	err = binary.Write(&buf, binary.BigEndian, int16(lenBetBytes))
 	if err != nil {
 		return err
 	}
+	packetSize += BET_SIZE_SIZE
 
-	message := append(buf.Bytes(), betBytes...)
+	buf.Write(betBytes)
+	packetSize += lenBetBytes
 
 	// Mechanism to avoid short write
-	for bytesSent := 0;  bytesSent < lenBetBytes + 2; {
-		n, err := c.conn.Write(message[bytesSent:])
+	packet := buf.Bytes()
+	for bytesSent := 0;  bytesSent < packetSize; {
+		n, err := c.conn.Write(packet[bytesSent:])
 		if err != nil {
 			return err
 		}
@@ -67,16 +73,21 @@ func (c *CentralLoteriaNacional) writeBet(bet Bet) error {
 // readConfirmation Reads the amount of bets the server read from a packet
 func (c *CentralLoteriaNacional) readConfirmation() error {
 
-	confirmation := make([]byte, 1)
-	for readBytes := 0; readBytes < 1; {
-		n, err := c.conn.Read(confirmation)
+	data := make([]byte, RESPONSE_CODE_SIZE)
+	for readBytes := 0; readBytes < RESPONSE_CODE_SIZE; {
+		n, err := c.conn.Read(data)
 		if err != nil {
 			return err
 		}
 		readBytes += n
 	}
+	var confirmation int16
+	err := binary.Read(bytes.NewReader(data), binary.BigEndian, &confirmation)
+	if err != nil {
+		return err
+	}
 
-	if confirmation[0] != 0x00 {
+	if confirmation != 0 {
 		return nil
 	}
 

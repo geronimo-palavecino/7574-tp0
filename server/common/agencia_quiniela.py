@@ -3,6 +3,8 @@ from common.bet import *
 
 """ packet size fields size"""
 PACKET_SIZE_SIZE = 2
+""" response code size"""
+RESPONSE_CODE_SIZE = 2
 
 """ Error representing that a problem occurred while reading from the socket """
 class ReadingError(Exception):
@@ -31,24 +33,14 @@ class AgenciaQuiniela:
         Then the bytes are decoded into a Bet which is later returned
         """
         try:
-            # First the length of the packet is read avoiding short reads
-            bet_len = bytearray(PACKET_SIZE_SIZE)
-            read_bytes = 0
-            while read_bytes < PACKET_SIZE_SIZE:
-                read_bytes += self.socket.recv_into(bet_len, 2)
-            
-            # A buffer of the packet size is created. Then the whole data is read avoiding short reads
-            bet_len = int.from_bytes(bytes(bet_len[:]), "big")
-            bet_data = bytearray(bet_len)
-            read_bytes = 0
-            while read_bytes < bet_len:
-                read_bytes += self.socket.recv_into(bet_data, bet_len - read_bytes)
-        
-            # The bet is decoded from its bytes representation
+            bet_len_data = read_data(self.socket, PACKET_SIZE_SIZE)
+            bet_len = int.from_bytes(bytes(bet_len_data[:]), "big")
+
+            bet_data = read_data(self.socket, bet_len)
             bet = Bet.from_bytes(bet_data)
 
             return bet
-        except Exception as e:
+        except Exception as _:
             raise ReadingError
 
     def confirm_bet(self, code):
@@ -56,8 +48,8 @@ class AgenciaQuiniela:
         Writes into the underlying connection the amount of bets read
         """
         try:
-            self.socket.sendall(code.to_bytes(1, byteorder='big'))
-        except Exception as e:
+            self.socket.sendall(code.to_bytes(RESPONSE_CODE_SIZE, byteorder='big'))
+        except Exception as _:
             raise WritingError
     
     def close(self):
@@ -66,3 +58,15 @@ class AgenciaQuiniela:
         """
         self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
+
+def read_data(socket, n):
+    """ 
+    Reads n bytes from the given socket
+    """
+    # The data is read avoiding short reads
+    data = bytearray(n)
+    read_bytes = 0
+    while read_bytes < n:
+        read_bytes += socket.recv_into(data, n - read_bytes)
+
+    return data
