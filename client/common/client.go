@@ -45,31 +45,37 @@ func NewClient(config ClientConfig, central CentralLoteriaNacional, repo *BetRep
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) SendBets() {
-	select {
-		case <- c.sigChan:
-			c.repo.Close()
-			log.Infof("action: graceful_shutdown | result: success | client_id: %v", c.config.ID)
-		default:
-			bets, err := c.repo.GetBets(c.config.Batch, c.config.ID)
-			if err != nil {
-				log.Criticalf(
-					"action: read_bets | result: fail | client_id: %v | error: %v",
-					c.config.ID,
-					err,
-				)
-				return
-			}
+	for true {
+		select {
+			case <- c.sigChan:
+				c.repo.Close()
+				log.Infof("action: graceful_shutdown | result: success | client_id: %v", c.config.ID)
+			default:
+				bets, err := c.repo.GetBets(c.config.Batch, c.config.ID)
+				if err != nil {
+					log.Criticalf(
+						"action: read_bets | result: fail | client_id: %v | error: %v",
+						c.config.ID,
+						err,
+					)
+					return
+				}
 
-			err = c.central.SendBets(bets)
-			if err != nil {
-				log.Criticalf(
-					"action: connect | result: fail | client_id: %v | error: %v",
-					c.config.ID,
-					err,
-				)
-				return
-			}
+				if len(bets) == 0 {
+					return
+				}
 
-			log.Infof("action: apuesta_enviada | result: success | cantidad: %v", len(bets))
+				err = c.central.SendBets(bets)
+				if err != nil {
+					log.Criticalf(
+						"action: connect | result: fail | client_id: %v | error: %v",
+						c.config.ID,
+						err,
+					)
+					return
+				}
+
+				log.Infof("action: apuesta_enviada | result: success | cantidad: %v", len(bets))
+		}
 	}
 }

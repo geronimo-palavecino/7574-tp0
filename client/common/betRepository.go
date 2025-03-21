@@ -46,7 +46,7 @@ func NewBetRepository(filePath string) (*BetRepository, error) {
 
 func (r *BetRepository) GetBets(amount int, agency int) ([]Bet, error) {
 	betsRead := 0 
-	bets := make([]Bet, amount)
+	bets := []Bet{}
 	
 	for r.scanner.Scan() && betsRead < amount {
 		betData := strings.Split(r.scanner.Text(), ",")
@@ -75,7 +75,7 @@ func (r *BetRepository) GetBets(amount int, agency int) ([]Bet, error) {
 			Number: number,
 		}
 
-		bets[betsRead] = bet
+		bets = append(bets, bet)
 		betsRead += 1
 	}
 

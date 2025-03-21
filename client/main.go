@@ -115,22 +115,8 @@ func main() {
 		ID:            v.GetInt("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
-		Batch:		   15,
+		Batch:		   14,
 	}
-
-	// date, err := time.Parse("2006-01-02", v.GetString("nacimiento"))
-	// if err != nil {
-	// 	log.Criticalf("%s", err)
-	// }
-
-	// bet := common.Bet{
-	// 	Agency:		v.GetInt("id"),
-	// 	FirstName:	v.GetString("nombre"),
-	// 	LastName:	v.GetString("apellido"),
-	// 	Document: 	v.GetInt("documento"),
-	// 	Birthdate:	date,
-	// 	Number:		v.GetInt("numero"),
-	// }
 
 	file := fmt.Sprintf("agency-%v.csv", v.GetInt("id"))
 	repo, err := common.NewBetRepository(file)
