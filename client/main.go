@@ -44,6 +44,7 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
+	v.BindEnv("batch", "maxAmount")
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
@@ -115,7 +116,7 @@ func main() {
 		ID:            v.GetInt("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
-		Batch:		   14,
+		Batch:		   v.GetInt("batch.maxAmount"),
 	}
 
 	file := fmt.Sprintf("agency-%v.csv", v.GetInt("id"))
