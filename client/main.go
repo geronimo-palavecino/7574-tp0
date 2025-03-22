@@ -130,5 +130,5 @@ func main() {
 	client := common.NewClient(clientConfig, central, repo)
 	client.SendBets()
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(30 * time.Millisecond)
 }

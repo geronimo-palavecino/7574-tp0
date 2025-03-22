@@ -59,6 +59,7 @@ func (c *Client) SendBets() {
 						c.config.ID,
 						err,
 					)
+					c.repo.Close()
 					return
 				}
 
@@ -74,6 +75,7 @@ func (c *Client) SendBets() {
 						c.config.ID,
 						err,
 					)
+					c.repo.Close()
 					return
 				}
 
