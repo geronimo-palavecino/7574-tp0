@@ -50,6 +50,7 @@ func (c *Client) SendBets() {
 			case <- c.sigChan:
 				c.repo.Close()
 				log.Infof("action: graceful_shutdown | result: success | client_id: %v", c.config.ID)
+				return
 			default:
 				bets, err := c.repo.GetBets(c.config.Batch, c.config.ID)
 				if err != nil {
@@ -62,6 +63,7 @@ func (c *Client) SendBets() {
 				}
 
 				if len(bets) == 0 {
+					c.repo.Close()
 					return
 				}
 

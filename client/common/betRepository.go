@@ -48,7 +48,7 @@ func (r *BetRepository) GetBets(amount int, agency int) ([]Bet, error) {
 	betsRead := 0 
 	bets := []Bet{}
 	
-	for r.scanner.Scan() && betsRead < amount {
+	for betsRead < amount && r.scanner.Scan() {
 		betData := strings.Split(r.scanner.Text(), ",")
 
 		birthdate, err := time.Parse("2006-01-02", betData[BIRTHDATE_INDEX])
