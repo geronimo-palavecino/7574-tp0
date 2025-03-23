@@ -128,7 +128,7 @@ func main() {
 	central := common.NewCentralLoteriaNacional(clientConfig.ServerAddress)
 
 	client := common.NewClient(clientConfig, central, repo)
-	client.SendBets()
+	client.Lottery()
 
-	time.Sleep(30 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 }

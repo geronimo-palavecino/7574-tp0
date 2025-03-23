@@ -6,17 +6,21 @@ from common.bet import *
 BET_SIZE_SIZE = 2
 """ number of bets field size"""
 N_BETS_SIZE = 2
+BET_BATCH_CODE = 0
+BET_RESPONSE_CODE = 1
+WINNER_REQUEST_CODE = 2
+WINNER_RESPONSE_CODE = 3
 
 """ Error representing that a problem occurred while reading from the socket """
 class ReadingError(Exception):
-    def __init__(self, decoded_bets=[], message="An error occurred while reading a bet from the Agencia de Quiniela"):
+    def __init__(self, decoded_bets=[], message="An error occurred while reading from the Agencia de Quiniela"):
         self.message = message
         self.decoded_bets = decoded_bets
         super().__init__(self.message)
 
 """ Error representing that a problem occurred while writing a confirmation into the socket """
 class WritingError(Exception):
-    def __init__(self, message="An error occurred while writing the confirmation to the Agencia de Quiniela"):
+    def __init__(self, message="An error occurred while writing to the Agencia de Quiniela"):
         self.message = message
         super().__init__(self.message)
 
@@ -28,6 +32,9 @@ class AgenciaQuiniela:
     def address(self):
         """ Returns the address of the peer connected """
         return self.socket.getpeername()
+
+    def recv_message(self):
+        return int.from_bytes(read_data(self.socket, 1), "big")
 
     def get_bets(self):
         """ 
@@ -48,13 +55,27 @@ class AgenciaQuiniela:
             return bets
         except Exception as _:
             raise ReadingError(decoded_bets=bets)
+        
+    def get_id(self):
+        return int.from_bytes(read_data(self.socket, 4), "big")
 
     def confirm_bets(self, n):
         """ 
         Writes into the underlying connection the amount of bets read
         """
         try:
-            self.socket.sendall(n.to_bytes(2, byteorder='big'))
+            packet = BET_RESPONSE_CODE.to_bytes(1, byteorder='big') + n.to_bytes(2, byteorder='big')
+            self.socket.sendall(packet)
+        except Exception as _:
+            raise WritingError
+    
+    def send_winners(self, winners):
+        try:
+            code = WINNER_RESPONSE_CODE.to_bytes(1, byteorder='big')
+            length = len(winners).to_bytes(2, byteorder='big')
+            documents = b''.join(winner.to_bytes(4, byteorder='big') for winner in winners)
+            packet = code + length + documents
+            self.socket.sendall(packet)
         except Exception as _:
             raise WritingError
     

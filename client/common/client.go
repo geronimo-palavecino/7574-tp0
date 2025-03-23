@@ -44,7 +44,8 @@ func NewClient(config ClientConfig, central CentralLoteriaNacional, repo *BetRep
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) SendBets() {
+func (c *Client) Lottery() {
+	allBetsSent := false
 	for true {
 		select {
 			case <- c.sigChan:
@@ -52,34 +53,61 @@ func (c *Client) SendBets() {
 				log.Infof("action: graceful_shutdown | result: success | client_id: %v", c.config.ID)
 				return
 			default:
-				bets, err := c.repo.GetBets(c.config.Batch, c.config.ID)
-				if err != nil {
-					log.Criticalf(
-						"action: read_bets | result: fail | client_id: %v | error: %v",
-						c.config.ID,
-						err,
-					)
+				if allBetsSent {
 					c.repo.Close()
+					getResults(c.config.ID, c.central)
 					return
+				} else {
+					var err error
+					allBetsSent, err = sendBets(c.repo, c.config.Batch, c.config.ID, c.central)
+					if err != nil {
+						c.repo.Close()
+						return
+					}
 				}
-
-				if len(bets) == 0 {
-					c.repo.Close()
-					return
-				}
-
-				err = c.central.SendBets(bets)
-				if err != nil {
-					log.Criticalf(
-						"action: connect | result: fail | client_id: %v | error: %v",
-						c.config.ID,
-						err,
-					)
-					c.repo.Close()
-					return
-				}
-
-				log.Infof("action: apuesta_enviada | result: success | cantidad: %v", len(bets))
 		}
+	}
+}
+
+func sendBets(repo *BetRepository, amount int, id int, central CentralLoteriaNacional) (bool, error) {
+	bets, err := repo.GetBets(amount, id)
+	if err != nil {
+		log.Criticalf(
+			"action: read_bets | result: fail | client_id: %v | error: %v",
+			id,
+			err,
+		)
+		return false, err
+	}
+
+	if len(bets) == 0 {
+		return true, nil
+	}
+
+	err = central.SendBets(bets)
+	if err != nil {
+		log.Criticalf(
+			"action: connect | result: fail | client_id: %v | error: %v",
+			id,
+			err,
+		)
+		return false, err
+	}
+
+	log.Infof("action: apuesta_enviada | result: success | cantidad: %v", len(bets))
+
+	return false, nil
+}
+
+func getResults(id int, central CentralLoteriaNacional) {
+	winners, err := central.GetWinners(id)
+	if err != nil {
+		log.Criticalf(
+			"action: consulta_ganadores| result: fail | client_id: %v | error: %v",
+			id,
+			err,
+		)
+	} else {
+		log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(winners))
 	}
 }

@@ -12,6 +12,7 @@ class Server:
         # Initialize server socket
         self._listener = listener
         self._current_connection = None
+        self._waiting_agencys = []
 
         # Setting the signal handler
         signal.signal(signal.SIGTERM, self.__sigterm_handler)
@@ -49,11 +50,23 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
-        try:        
-            bets = quiniela.get_bets()
-            store_bets(bets)
-            quiniela.confirm_bets(len(bets))
-            logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
+        try:
+            message_type = quiniela.recv_message()
+            if message_type == BET_BATCH_CODE:
+                bets = quiniela.get_bets()
+                store_bets(bets)
+                quiniela.confirm_bets(len(bets))
+                logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
+            elif message_type == WINNER_REQUEST_CODE:
+                id = quiniela.get_id()
+                winners = []
+                bets = load_bets()
+                for bet in bets:
+                    if has_won(bet): 
+                        winners.append(int(bet.document))
+                quiniela.send_winners(winners)
+            else:
+                logging.error(f"action: unexpected_error | result: fail | error: Unexpected message received")
         except ReadingError as e:
             logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(e.decoded_bets)}")
         except Exception as e:
