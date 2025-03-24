@@ -51,7 +51,7 @@ def main():
 
     # Initialize server and start server loop
     quiniela_listener = AgenciaQuinielaListener(port, listen_backlog)
-    server = Server(quiniela_listener, config_params["n_clients"])
+    server = Server(quiniela_listener, int(config_params["n_clients"]))
     server.run()
 
 def initialize_log(logging_level):
