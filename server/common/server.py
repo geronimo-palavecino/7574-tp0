@@ -55,29 +55,32 @@ class Server:
         client socket will also be closed
         """
         try:
-            message_type = quiniela.recv_message()
-            if message_type == BET_BATCH_CODE:
-                bets = quiniela.get_bets()
-                store_bets(bets)
-                quiniela.confirm_bets(len(bets))
-                logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
-                quiniela.close()
-            elif message_type == WINNER_REQUEST_CODE:
-                id = quiniela.get_id()
-                self._waiting_agencys.append((id, quiniela))
-                if len(self._waiting_agencys) == self._n_clients:
-                    logging.info(f'action: sorteo | result: success')
-                    winners = [[] for _ in range(self._n_clients)]
-                    bets = load_bets()
-                    for bet in bets:
-                        if has_won(bet):
-                            winners[bet.agency - 1].append(int(bet.document))
-                    for id, agency in self._waiting_agencys:
-                        agency.send_winners(winners[id-1])
-                        agency.close()
-                    self._waiting_agencys = []
-            else:
-                logging.error(f"action: unexpected_error | result: fail | error: Unexpected message received")
+            while True: 
+                message_type = quiniela.recv_message()
+                if message_type == BET_BATCH_CODE:
+                    bets = quiniela.get_bets()
+                    store_bets(bets)
+                    quiniela.confirm_bets(len(bets))
+                    logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
+                elif message_type == WINNER_REQUEST_CODE:
+                    id = quiniela.get_id()
+                    self._waiting_agencys.append((id, quiniela))
+                    if len(self._waiting_agencys) == self._n_clients:
+                        logging.info(f'action: sorteo | result: success')
+                        winners = [[] for _ in range(self._n_clients)]
+                        bets = load_bets()
+                        for bet in bets:
+                            if has_won(bet):
+                                winners[bet.agency - 1].append(int(bet.document))
+                        for id, agency in self._waiting_agencys:
+                            agency.send_winners(winners[id-1])
+                            agency.close()
+                        self._waiting_agencys = []
+                        break
+                    else: 
+                        break
+                else:
+                    logging.error(f"action: unexpected_error | result: fail | error: Unexpected message received")
         except ReadingError as e:
             logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(e.decoded_bets)}")
         except Exception as e:

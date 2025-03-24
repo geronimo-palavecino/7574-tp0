@@ -45,23 +45,37 @@ func NewClient(config ClientConfig, central CentralLoteriaNacional, repo *BetRep
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) Lottery() {
+	// The connection is opened
+	err := c.central.CreateSocket()
+	if err != nil {
+		log.Criticalf(
+			"action: connect | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
+	
 	allBetsSent := false
 	for true {
 		select {
 			case <- c.sigChan:
 				c.repo.Close()
+				c.central.Close()
 				log.Infof("action: graceful_shutdown | result: success | client_id: %v", c.config.ID)
 				return
 			default:
 				if allBetsSent {
 					c.repo.Close()
 					getResults(c.config.ID, c.central)
+					c.central.Close()
 					return
 				} else {
 					var err error
 					allBetsSent, err = sendBets(c.repo, c.config.Batch, c.config.ID, c.central)
 					if err != nil {
 						c.repo.Close()
+						c.central.Close()
 						return
 					}
 				}

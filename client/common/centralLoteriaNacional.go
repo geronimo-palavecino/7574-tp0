@@ -41,7 +41,7 @@ func NewCentralLoteriaNacional(address string) CentralLoteriaNacional {
 // CreateSocket Initializes central socket. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
-func (c *CentralLoteriaNacional) createSocket() error {
+func (c *CentralLoteriaNacional) CreateSocket() error {
 	conn, err := net.Dial("tcp", c.Address)
 	c.conn = conn
 	return err
@@ -177,14 +177,8 @@ func (c *CentralLoteriaNacional) readWinners() ([]int, error) {
 // SendBet Sends the given Bets through the underlying connection, and waits for
 // confirmation of reception
 func (c *CentralLoteriaNacional) SendBets(bets []Bet) error {
-	// The connection is opened
-	err := c.createSocket()
-	if err != nil {
-		return err
-	}
-
 	// The Bet Batch packet is sent
-	err = c.writeBet(bets)
+	err := c.writeBet(bets)
 	if err != nil {
 		return err
 	}
@@ -195,9 +189,6 @@ func (c *CentralLoteriaNacional) SendBets(bets []Bet) error {
 		return err
 	}
 
-	// The connection is closed
-	c.conn.Close()
-
 	return nil
 }	
 
@@ -205,14 +196,8 @@ func (c *CentralLoteriaNacional) SendBets(bets []Bet) error {
 // and waits for the response containing the documents of the winners from the agency
 // with the given id
 func (c *CentralLoteriaNacional) GetWinners(id int) ([]int, error) {
-	// The connection is opened
-	err := c.createSocket()
-	if err != nil {
-		return nil, err
-	}
-
 	// The Winners Request packet is sent
-	err = c.requestWinner(id)
+	err := c.requestWinner(id)
 	if err != nil {
 		return nil, err
 	}
@@ -223,10 +208,11 @@ func (c *CentralLoteriaNacional) GetWinners(id int) ([]int, error) {
 		return nil, err
 	}
 
-	// The connection is closed
-	c.conn.Close()
-
 	return winners, nil
+}
+
+func (c *CentralLoteriaNacional) Close() {
+	c.conn.Close()
 }
 
 // writePacket Writes a packet in the given connection

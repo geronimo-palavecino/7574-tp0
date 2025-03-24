@@ -130,5 +130,5 @@ func main() {
 	client := common.NewClient(clientConfig, central, repo)
 	client.Lottery()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 }
