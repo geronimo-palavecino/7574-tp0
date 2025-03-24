@@ -10,6 +10,7 @@ SERVER = '''
     entrypoint: python3 /main.py            
     environment:                            
       - PYTHONUNBUFFERED=1                               
+      - EXISTINGCLIENTS={n_clients}
     networks:                               
       - testing_net
     volumes:
@@ -51,7 +52,7 @@ import sys
 def main(file_name, n_clients):
     f = open(file_name, 'w')
     f.write(COMPOSE)
-    f.write(SERVER)
+    f.write(SERVER.format(n_clients=n_clients))
     for n in range(n_clients):
         f.write(CLIENT.format(client_n=n+1))
     f.write(NETWORK)

@@ -27,6 +27,7 @@ def initialize_config():
         config_params["port"] = int(os.getenv('SERVER_PORT', config["DEFAULT"]["SERVER_PORT"]))
         config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SERVER_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
+        config_params["n_clients"] = os.getenv('EXISTINGCLIENTS')
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
     except ValueError as e:
@@ -50,7 +51,7 @@ def main():
 
     # Initialize server and start server loop
     quiniela_listener = AgenciaQuinielaListener(port, listen_backlog)
-    server = Server(quiniela_listener)
+    server = Server(quiniela_listener, config_params["n_clients"])
     server.run()
 
 def initialize_log(logging_level):

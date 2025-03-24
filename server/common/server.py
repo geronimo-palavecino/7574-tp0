@@ -8,9 +8,10 @@ from common.agencia_quiniela_listener import *
 from common.agencia_quiniela import *
 
 class Server:
-    def __init__(self, listener):
+    def __init__(self, listener, n_clients):
         # Initialize server socket
         self._listener = listener
+        self._n_clients = n_clients
         self._current_connection = None
         self._waiting_agencys = []
 
@@ -64,9 +65,9 @@ class Server:
             elif message_type == WINNER_REQUEST_CODE:
                 id = quiniela.get_id()
                 self._waiting_agencys.append((id, quiniela))
-                if len(self._waiting_agencys) == 5:
+                if len(self._waiting_agencys) == self._n_clients:
                     logging.info(f'action: sorteo | result: success')
-                    winners = [[] for _ in range(5)]
+                    winners = [[] for _ in range(self._n_clients)]
                     bets = load_bets()
                     for bet in bets:
                         if has_won(bet):
