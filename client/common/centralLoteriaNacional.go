@@ -52,7 +52,7 @@ func (c *CentralLoteriaNacional) createSocket() error {
 func (c *CentralLoteriaNacional) writeBet(bets []Bet) error {
 	var buf bytes.Buffer
 
-	// The amount of bets to be send is codified and added to buf
+	// The packet code is codified and added to buf
 	err := binary.Write(&buf, binary.BigEndian, int8(BET_BATCH_CODE))
 	if err != nil {
 		return err
@@ -64,6 +64,7 @@ func (c *CentralLoteriaNacional) writeBet(bets []Bet) error {
 		return err
 	}
 
+	// All the bets are codified and added to the buf
 	for n := 0; n < len(bets); n++ {
 		betBytes, err := bets[n].Bytes()
 		if err != nil {
@@ -79,7 +80,7 @@ func (c *CentralLoteriaNacional) writeBet(bets []Bet) error {
 		buf.Write(betBytes)
 	}
 
-	// Mechanism to avoid short write
+	// The packet in the buf is sent
 	err = writePacket(c.conn, buf.Bytes())
 	if err != nil {
 		return err
@@ -93,18 +94,19 @@ func (c *CentralLoteriaNacional) writeBet(bets []Bet) error {
 func (c *CentralLoteriaNacional) requestWinner(id int) error {
 	var buf bytes.Buffer
 
+	// The packet code is codified and added to buf
 	err := binary.Write(&buf, binary.BigEndian, int8(WINNER_REQUEST_CODE))
 	if err != nil {
 		return err
 	}
 
-	// The amount of bets to be send is codified and added to buf
+	// The agency id is codified and added to buf
 	err = binary.Write(&buf, binary.BigEndian, int32(id))
 	if err != nil {
 		return err
 	}
 
-	// Mechanism to avoid short write
+	// The packet in the buf is sent
 	err = writePacket(c.conn, buf.Bytes())
 	if err != nil {
 		return err
@@ -115,6 +117,7 @@ func (c *CentralLoteriaNacional) requestWinner(id int) error {
 
 // readConfirmation Reads a Bet Response packet from the underlying socket
 func (c *CentralLoteriaNacional) readConfirmation() error {
+	// The packet code is read and checked to be correct
 	code, err := readInt(c.conn, CODE_SIZE)
 	if err != nil {
 		return err
@@ -125,6 +128,7 @@ func (c *CentralLoteriaNacional) readConfirmation() error {
 		return errors.New(message)
 	}
 
+	// The number of bets is read and checked to be non zero
 	betsRead, err := readInt(c.conn, AMOUNT_BETS_SIZE)
 	if err != nil {
 		return err
@@ -139,6 +143,7 @@ func (c *CentralLoteriaNacional) readConfirmation() error {
 
 // readWinners Reads a Winners Response packet from the underlying socket
 func (c *CentralLoteriaNacional) readWinners() ([]int, error) {
+	// The packet code is read and checked to be correct
 	code, err := readInt(c.conn, CODE_SIZE)
 	if err != nil {
 		return nil, err
@@ -149,11 +154,13 @@ func (c *CentralLoteriaNacional) readWinners() ([]int, error) {
 		return nil, errors.New(message)
 	}
 
+	// The number of winners is read
 	amountWinners, err := readInt(c.conn, AMOUNT_BETS_SIZE)
 	if err != nil {
 		return nil, err
 	}
 
+	// The winners documents are read and added to the winners list
 	winners := make([]int, amountWinners)
 	for n := 0; n < int(amountWinners); n++ {
 		winner, err := readInt(c.conn, 4)
@@ -170,21 +177,25 @@ func (c *CentralLoteriaNacional) readWinners() ([]int, error) {
 // SendBet Sends the given Bets through the underlying connection, and waits for
 // confirmation of reception
 func (c *CentralLoteriaNacional) SendBets(bets []Bet) error {
+	// The connection is opened
 	err := c.createSocket()
 	if err != nil {
 		return err
 	}
 
+	// The Bet Batch packet is sent
 	err = c.writeBet(bets)
 	if err != nil {
 		return err
 	}
 
+	// The Bet Confirmation packet is read
 	err = c.readConfirmation()
 	if err != nil {
 		return err
 	}
 
+	// The connection is closed
 	c.conn.Close()
 
 	return nil
@@ -194,21 +205,25 @@ func (c *CentralLoteriaNacional) SendBets(bets []Bet) error {
 // and waits for the response containing the documents of the winners from the agency
 // with the given id
 func (c *CentralLoteriaNacional) GetWinners(id int) ([]int, error) {
+	// The connection is opened
 	err := c.createSocket()
 	if err != nil {
 		return nil, err
 	}
 
+	// The Winners Request packet is sent
 	err = c.requestWinner(id)
 	if err != nil {
 		return nil, err
 	}
 
+	// The Winners Response is read
 	winners, err := c.readWinners()
 	if err != nil {
 		return nil, err
 	}
 
+	// The connection is closed
 	c.conn.Close()
 
 	return winners, nil
@@ -230,15 +245,17 @@ func writePacket(conn net.Conn, packet []byte) error {
 
 // readInt Reads an int constituted from n bytes from the given connection
 func readInt(conn net.Conn, n int) (int32, error) {
+	// The values data is read
 	data := make([]byte, 4)
 	for readBytes := 0; readBytes < n; {
-		nRead, err := conn.Read(data[4-n-+readBytes:])
+		nRead, err := conn.Read(data[4-n-+readBytes:]) // This slicing method is done to add padding to the "leftside" of the data
 		if err != nil {
 			return 0, err
 		}
 		readBytes += nRead
 	}
 
+	// The value is converted to int32
 	var value int32
 	err := binary.Read(bytes.NewReader(data), binary.BigEndian, &value)
 	if err != nil {

@@ -29,6 +29,9 @@ class Server:
         if self._current_connection != None:
             self._current_connection.close()
             logging.info(f'action: graceful_shutdown | result: success | fd: Client socket')
+        for _, connection in self._waiting_agencys:
+            connection.close()
+            logging.info(f'action: graceful_shutdown | result: success | fd: Client socket')
         sys.exit(0)
 
     def run(self):
@@ -57,14 +60,21 @@ class Server:
                 store_bets(bets)
                 quiniela.confirm_bets(len(bets))
                 logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
+                quiniela.close()
             elif message_type == WINNER_REQUEST_CODE:
                 id = quiniela.get_id()
-                winners = []
-                bets = load_bets()
-                for bet in bets:
-                    if has_won(bet): 
-                        winners.append(int(bet.document))
-                quiniela.send_winners(winners)
+                self._waiting_agencys.append((id, quiniela))
+                if len(self._waiting_agencys) == 5:
+                    logging.info(f'action: sorteo | result: success')
+                    winners = [[] for _ in range(5)]
+                    bets = load_bets()
+                    for bet in bets:
+                        if has_won(bet):
+                            winners[bet.agency - 1].append(int(bet.document))
+                    for id, agency in self._waiting_agencys:
+                        agency.send_winners(winners[id-1])
+                        agency.close()
+                    self._waiting_agencys = []
             else:
                 logging.error(f"action: unexpected_error | result: fail | error: Unexpected message received")
         except ReadingError as e:
@@ -72,7 +82,6 @@ class Server:
         except Exception as e:
             logging.error(f"action: unexpected_error | result: fail | error: {e}")
         finally:
-            quiniela.close()
             self._current_connection = None
 
     def __accept_new_connection(self):
