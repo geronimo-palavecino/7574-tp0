@@ -12,10 +12,15 @@ import (
 const BET_SIZE_SIZE = 2
 // AMOUNT_BETS_SIZE Represents the size in bytes of the amount of bets field in the packet
 const AMOUNT_BETS_SIZE = 2
+// CODE_SIZE Represents the size in bytes of the code field in the packet
 const CODE_SIZE = 1
+// BET_BATCH_CODE Represents the code for a Bet Batch packet
 const BET_BATCH_CODE = 0
+// BET_RESPONSE_CODE Represents the code for a Bet Response packet
 const BET_RESPONSE_CODE = 1
+// WINNER_REQUEST_CODE Represents the code for a Winner Request packet
 const WINNER_REQUEST_CODE = 2
+// WINNER_RESPONSE_CODE Represents the code for a Winner Response packet
 const WINNER_RESPONSE_CODE = 3
 
 // CentralLoteriaNacional Entity that encapsulates the communication with the server representing the Central de Loteria Nacional
@@ -42,25 +47,22 @@ func (c *CentralLoteriaNacional) createSocket() error {
 	return err
 }
 
-// writeBet Sends the given Bet, in its byte representation
-// though the underlying connection
+// writeBet Sends a Bets Batch packet with the given bets through the
+// underlying socket
 func (c *CentralLoteriaNacional) writeBet(bets []Bet) error {
 	var buf bytes.Buffer
-	packet_size := 0
 
 	// The amount of bets to be send is codified and added to buf
 	err := binary.Write(&buf, binary.BigEndian, int8(BET_BATCH_CODE))
 	if err != nil {
 		return err
 	}
-	packet_size += 1
 
 	// The amount of bets to be send is codified and added to buf
 	err = binary.Write(&buf, binary.BigEndian, int16(len(bets)))
 	if err != nil {
 		return err
 	}
-	packet_size += AMOUNT_BETS_SIZE
 
 	for n := 0; n < len(bets); n++ {
 		betBytes, err := bets[n].Bytes()
@@ -73,68 +75,47 @@ func (c *CentralLoteriaNacional) writeBet(bets []Bet) error {
 		if err != nil {
 			return err
 		}
-		packet_size += BET_SIZE_SIZE
 
 		buf.Write(betBytes)
-		packet_size += lenBetBytes
 	}
 
 	// Mechanism to avoid short write
-	packet := buf.Bytes()
-	for bytesSent := 0;  bytesSent < packet_size; {
-		n, err := c.conn.Write(packet[bytesSent:])
-		if err != nil {
-			return err
-		}
-		bytesSent += n
+	err = writePacket(c.conn, buf.Bytes())
+	if err != nil {
+		return err
 	}
-	
+
 	return nil
 }
 
+// requestWinner Sends a Winner Request packet indicating the agency whos
+// asking through the underlying socket
 func (c *CentralLoteriaNacional) requestWinner(id int) error {
 	var buf bytes.Buffer
-	packet_size := 0
 
 	err := binary.Write(&buf, binary.BigEndian, int8(WINNER_REQUEST_CODE))
 	if err != nil {
 		return err
 	}
-	packet_size += 1
 
 	// The amount of bets to be send is codified and added to buf
 	err = binary.Write(&buf, binary.BigEndian, int32(id))
 	if err != nil {
 		return err
 	}
-	packet_size += 4
 
 	// Mechanism to avoid short write
-	packet := buf.Bytes()
-	for bytesSent := 0;  bytesSent < packet_size; {
-		n, err := c.conn.Write(packet[bytesSent:])
-		if err != nil {
-			return err
-		}
-		bytesSent += n
+	err = writePacket(c.conn, buf.Bytes())
+	if err != nil {
+		return err
 	}
 	
 	return nil
 }
 
-// readConfirmation Reads the amount of bets the server read from a packet
+// readConfirmation Reads a Bet Response packet from the underlying socket
 func (c *CentralLoteriaNacional) readConfirmation() error {
-	codeData := make([]byte, CODE_SIZE)
-	for readBytes := 0; readBytes < CODE_SIZE; {
-		n, err := c.conn.Read(codeData)
-		if err != nil {
-			return err
-		}
-		readBytes += n
-	}
-
-	var code int8
-	err := binary.Read(bytes.NewReader(codeData), binary.BigEndian, &code)
+	code, err := readInt(c.conn, CODE_SIZE)
 	if err != nil {
 		return err
 	}
@@ -144,40 +125,21 @@ func (c *CentralLoteriaNacional) readConfirmation() error {
 		return errors.New(message)
 	}
 
-	data := make([]byte, AMOUNT_BETS_SIZE)
-	for readBytes := 0; readBytes < AMOUNT_BETS_SIZE; {
-		n, err := c.conn.Read(data)
-		if err != nil {
-			return err
-		}
-		readBytes += n
-	}
-
-	var bets_read int16
-	err = binary.Read(bytes.NewReader(data), binary.BigEndian, &bets_read)
+	betsRead, err := readInt(c.conn, AMOUNT_BETS_SIZE)
 	if err != nil {
 		return err
 	}
 
-	if bets_read != 0 {
+	if betsRead != 0 {
 		return nil
 	}
 
 	return errors.New("Server error while receiving the bet information")
 }
 
+// readWinners Reads a Winners Response packet from the underlying socket
 func (c *CentralLoteriaNacional) readWinners() ([]int, error) {
-	codeData := make([]byte, CODE_SIZE)
-	for readBytes := 0; readBytes < CODE_SIZE; {
-		n, err := c.conn.Read(codeData)
-		if err != nil {
-			return nil, err
-		}
-		readBytes += n
-	}
-
-	var code int8
-	err := binary.Read(bytes.NewReader(codeData), binary.BigEndian, &code)
+	code, err := readInt(c.conn, CODE_SIZE)
 	if err != nil {
 		return nil, err
 	}
@@ -187,34 +149,14 @@ func (c *CentralLoteriaNacional) readWinners() ([]int, error) {
 		return nil, errors.New(message)
 	}
 
-	amountWinnersData := make([]byte, AMOUNT_BETS_SIZE)
-	for readBytes := 0; readBytes < AMOUNT_BETS_SIZE; {
-		n, err := c.conn.Read(amountWinnersData)
-		if err != nil {
-			return nil, err
-		}
-		readBytes += n
-	}
-
-	var amountWinners int16
-	err = binary.Read(bytes.NewReader(amountWinnersData), binary.BigEndian, &amountWinners)
+	amountWinners, err := readInt(c.conn, AMOUNT_BETS_SIZE)
 	if err != nil {
 		return nil, err
 	}
 
 	winners := make([]int, amountWinners)
 	for n := 0; n < int(amountWinners); n++ {
-		documentData := make([]byte, 4)
-		for readBytes := 0; readBytes < 4; {
-			n, err := c.conn.Read(documentData)
-			if err != nil {
-				return nil, err
-			}
-			readBytes += n
-		}
-
-		var winner int32
-		err := binary.Read(bytes.NewReader(documentData), binary.BigEndian, &winner)
+		winner, err := readInt(c.conn, 4)
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +167,7 @@ func (c *CentralLoteriaNacional) readWinners() ([]int, error) {
 	return winners, nil
 }
 
-// sendBet Sends the given Bet through the underlying connection, and waits for
+// SendBet Sends the given Bets through the underlying connection, and waits for
 // confirmation of reception
 func (c *CentralLoteriaNacional) SendBets(bets []Bet) error {
 	err := c.createSocket()
@@ -248,6 +190,9 @@ func (c *CentralLoteriaNacional) SendBets(bets []Bet) error {
 	return nil
 }	
 
+// GetWinners Sends a request for the winers through the underlying connection,
+// and waits for the response containing the documents of the winners from the agency
+// with the given id
 func (c *CentralLoteriaNacional) GetWinners(id int) ([]int, error) {
 	err := c.createSocket()
 	if err != nil {
@@ -267,4 +212,38 @@ func (c *CentralLoteriaNacional) GetWinners(id int) ([]int, error) {
 	c.conn.Close()
 
 	return winners, nil
+}
+
+// writePacket Writes a packet in the given connection
+func writePacket(conn net.Conn, packet []byte) error {
+	// Mechanism to avoid short write
+	for bytesSent := 0;  bytesSent < len(packet); {
+		n, err := conn.Write(packet[bytesSent:])
+		if err != nil {
+			return err
+		}
+		bytesSent += n
+	}
+
+	return nil	
+}
+
+// readInt Reads an int constituted from n bytes from the given connection
+func readInt(conn net.Conn, n int) (int32, error) {
+	data := make([]byte, 4)
+	for readBytes := 0; readBytes < n; {
+		nRead, err := conn.Read(data[4-n-+readBytes:])
+		if err != nil {
+			return 0, err
+		}
+		readBytes += nRead
+	}
+
+	var value int32
+	err := binary.Read(bytes.NewReader(data), binary.BigEndian, &value)
+	if err != nil {
+		return 0, err
+	}
+
+	return value, nil
 }

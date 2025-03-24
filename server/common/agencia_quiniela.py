@@ -2,13 +2,17 @@ import logging
 import socket
 from common.bet import *
 
-""" bet size fields size"""
+""" bet size fields size """
 BET_SIZE_SIZE = 2
-""" number of bets field size"""
+""" number of bets field size """
 N_BETS_SIZE = 2
+""" Bet Batch packet code """
 BET_BATCH_CODE = 0
+""" Bet Response packet code """
 BET_RESPONSE_CODE = 1
+""" Winner Request packet code """
 WINNER_REQUEST_CODE = 2
+""" Winner Response packet code """
 WINNER_RESPONSE_CODE = 3
 
 """ Error representing that a problem occurred while reading from the socket """
@@ -34,11 +38,12 @@ class AgenciaQuiniela:
         return self.socket.getpeername()
 
     def recv_message(self):
+        """ Reads the packet code of a packet """
         return int.from_bytes(read_data(self.socket, 1), "big")
 
     def get_bets(self):
         """ 
-        Reads a series of bets from the underlying socket
+        Reads a series of bets from a Bets Batch packet from the underlying socket
         If the operation is successful the function returns a list with all the bets. If not, a ReadingError exception is raised.
         """
         bets = []
@@ -57,12 +62,11 @@ class AgenciaQuiniela:
             raise ReadingError(decoded_bets=bets)
         
     def get_id(self):
+        """ Reads the agency id sent in a Winner Request packet from the underlying socket """
         return int.from_bytes(read_data(self.socket, 4), "big")
 
     def confirm_bets(self, n):
-        """ 
-        Writes into the underlying connection the amount of bets read
-        """
+        """ Writes a Bet Response packet with the amount of bets read into the underlying connection """
         try:
             packet = BET_RESPONSE_CODE.to_bytes(1, byteorder='big') + n.to_bytes(2, byteorder='big')
             self.socket.sendall(packet)
@@ -70,6 +74,7 @@ class AgenciaQuiniela:
             raise WritingError
     
     def send_winners(self, winners):
+        """ Writes a Winner Response packet with the documents of the winning bets into the underlying connection """
         try:
             code = WINNER_RESPONSE_CODE.to_bytes(1, byteorder='big')
             length = len(winners).to_bytes(2, byteorder='big')
@@ -80,16 +85,12 @@ class AgenciaQuiniela:
             raise WritingError
     
     def close(self):
-        """ 
-        Closes the underlying connection
-        """
+        """ Closes the underlying connection """
         self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
 
 def read_data(socket, n):
-    """ 
-    Reads n bytes from the given socket
-    """
+    """ Reads n bytes from the given socket """
     # The data is read avoiding short reads
     data = bytearray(n)
     read_bytes = 0
