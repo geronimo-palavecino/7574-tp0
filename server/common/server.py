@@ -65,6 +65,7 @@ class Server:
             elif message_type == WINNER_REQUEST_CODE:
                 id = quiniela.get_id()
                 self._waiting_agencys.append((id, quiniela))
+                logging.info(f'Winner request from {id}: {len(self._waiting_agencys)}/{self._n_clients}')
                 if len(self._waiting_agencys) == self._n_clients:
                     logging.info(f'action: sorteo | result: success')
                     winners = [[] for _ in range(self._n_clients)]
