@@ -96,19 +96,16 @@ class Server:
 
 
 def _bet_batch_handler(quiniela, connection_id, connections):
-    logging.info(f'{connection_id} Acquire')
     bets = quiniela.get_bets()
     connections._lock.acquire()
     store_bets(bets)
     quiniela.confirm_bets(len(bets))
     logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
-    logging.info(f'{connection_id} Release')
     connections._lock.release()
 
 def _winner_request_handler(quiniela, connection_id, connections, n_clients):
     id = quiniela.get_id()
     connections._lock.acquire()
-    logging.info(f'{connection_id} Acquire')
     connections._waiting_agencys.append((id, quiniela))
     connections._current_connections.pop(connection_id)
     if len(connections._waiting_agencys) == n_clients:
@@ -122,5 +119,4 @@ def _winner_request_handler(quiniela, connection_id, connections, n_clients):
             agency.send_winners(winners[id-1])
             agency.close()
         connections._waiting_agencys = []
-    logging.info(f'{connection_id} Release')
     connections._lock.release()
