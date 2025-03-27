@@ -41,8 +41,14 @@ class Server:
         """
 
         while self._running:
-            client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
+            try:
+                client_sock = self.__accept_new_connection()
+                self.__handle_client_connection(client_sock)
+            except OSError as e:
+                if e.errno == 9 and not self._running:
+                    break
+                else:
+                    logging.error("action: unexpected_error | result: fail | error: {e}")
 
     def __handle_client_connection(self, client_sock):
         """
