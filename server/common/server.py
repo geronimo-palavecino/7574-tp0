@@ -38,8 +38,7 @@ class Server:
             logging.info(f'action: graceful_shutdown | result: success | fd: Client socket')
         for _, connection in self._connections._waiting_agencys:
             connection.close()
-            logging.info(f'action: graceful_shutdown | result: success | fd: Client socket')
-        sys.exit(0)            
+            logging.info(f'action: graceful_shutdown | result: success | fd: Client socket')     
 
     def run(self):
         """
