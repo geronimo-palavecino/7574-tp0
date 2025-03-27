@@ -10,6 +10,7 @@ from common.agencia_quiniela import *
 class Server:
     def __init__(self, listener, n_clients):
         # Initialize server socket
+        self._running = True
         self._listener = listener
         self._n_clients = n_clients
         self._current_connection = None
@@ -25,6 +26,7 @@ class Server:
         When the application receives a SIGTERM signal, all the file descriptors 
         (welcoming socket, and client current socket) are closed for a graceful shutdown
         """
+        self._running = False
         self._listener.close()
         logging.info(f'action: graceful_shutdown | result: success | fd: Welcoming socket')
         if self._current_connection != None:
@@ -42,9 +44,15 @@ class Server:
         communication with a client. After client with communication
         finishes, servers starts to accept new connections again
         """
-        while True:
-            client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
+        while self._running:
+            try:
+                client_sock = self.__accept_new_connection()
+                self.__handle_client_connection(client_sock)
+            except OSError as e:
+                if e.errno == 9 and not self._running:
+                    break
+                else:
+                    logging.error(f"action: unexpected_error | result: fail | error: {e}")
 
     def __handle_client_connection(self, quiniela):
         """
