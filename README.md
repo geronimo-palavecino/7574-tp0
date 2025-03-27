@@ -93,9 +93,29 @@ python3 mi-generador.py $1 $2
 
 En el archivo de Docker Compose de salida se pueden definir volúmenes, variables de entorno y redes con libertad, pero recordar actualizar este script cuando se modifiquen tales definiciones en los sucesivos ejercicios.
 
+#### Resolución
+
+Para la resolución de este ejercicio se optó por crear un script de bash `generar-compose.sh` que recibe como argumentos los parámetros indicados en la consigna, y luego ejecuta un script de python llamado `mi-generador.py` utilizando dichos parámetros. Esto es debido a que considero que es mucho mas fácil (Y poseo mayor familiaridad) el manejo de archivos en python que con el uso de bash.
+
+Para el script de python se definieron 4 constantes las cuales representan los diferentes artefactos dentro del docker-compose a ser creado:
+- COMPOSE: Define el nombre que va a tener el compose, como así el header de los servicios que se declararán a continuación
+- SERVER: Contiene toda la información para poder crear un container de un servidor dentro del proyecto
+- CLIENT: Contiene toda la información para poder crear un container de un cliente dentro del proyecto
+    - Dentro de esta constante se definió un *format specifier* para poder indicar el numero de cliente que será (Esto afecta a la id del mismo, tanto como al nombre del container)
+- NETWORK: Contiene toda la información para crear las redes utilizadas dentro del proyecto
+
+Para resolver la tarea plantead, el script de python, primero abre el archivo en el que se desea especificar el docker-compose. A continuación escribe los artefactos de COMPOSE y SERVER, para luego escribir CLIENTES tantas veces como haya sido especificado. Finalmente, se escribe NETWORK y se cierra el archivo
+
+Para la ejecución de este ejercicio se debe utilizar el comando: `./generar-compose.sh <NOMBRE_DEL_ARCHIVO_DE_SALIDA> <CANTIDAD_DE_CLIENTES>`
+
 ### Ejercicio N°2:
 Modificar el cliente y el servidor para lograr que realizar cambios en el archivo de configuración no requiera reconstruír las imágenes de Docker para que los mismos sean efectivos. La configuración a través del archivo correspondiente (`config.ini` y `config.yaml`, dependiendo de la aplicación) debe ser inyectada en el container y persistida por fuera de la imagen (hint: `docker volumes`).
 
+#### Resolución
+
+Para la resolución de este ejercicio se agrego el atributo de `volumes` a los artefactos SERVER y CLIENT. En dicho atributo se configuró que cada uno de los artefactos debe tomar su respectivo archivo de configuración como volume, provocando que la información de los respectivos archivos se persista por fuera del contenedor.
+
+La ejecución de este ejercicio se realiza de la misma forma que el ejercicio anterior: `./generar-compose.sh <NOMBRE_DEL_ARCHIVO_DE_SALIDA> <CANTIDAD_DE_CLIENTES>`
 
 ### Ejercicio N°3:
 Crear un script de bash `validar-echo-server.sh` que permita verificar el correcto funcionamiento del servidor utilizando el comando `netcat` para interactuar con el mismo. Dado que el servidor es un echo server, se debe enviar un mensaje al servidor y esperar recibir el mismo mensaje enviado.
@@ -104,9 +124,24 @@ En caso de que la validación sea exitosa imprimir: `action: test_echo_server | 
 
 El script deberá ubicarse en la raíz del proyecto. Netcat no debe ser instalado en la máquina _host_ y no se pueden exponer puertos del servidor para realizar la comunicación (hint: `docker network`). `
 
+#### Resolución
+
+Para la resolución de este ejercicio se creo un script de bash `validar-echo-server.sh` el cual crea un contenedor utilizando una imagen de alpine (*) y lo conecta a la red del docker-compose `tp0_testing_net`. A continuación se le indica al container que envíe un mensaje al servidor utilizando netcat. Luego se verifica si la respuesta obtenida es igual al mensaje enviado y se imprime por pantalla si la operación tuvo éxito o no. Finalmente se para y remueve el contenedor.
+
+Para la ejecución de este ejercicio se debe utilizar el siguiente comando: `./validar-echo-server.sh`
+
+(*) Alpine es una distribución liviana de ubuntu, que posee pre-instalado netcat. Debido a estas dos características, fue seleccionado como imagen para la creación del container
 
 ### Ejercicio N°4:
 Modificar servidor y cliente para que ambos sistemas terminen de forma _graceful_ al recibir la signal SIGTERM. Terminar la aplicación de forma _graceful_ implica que todos los _file descriptors_ (entre los que se encuentran archivos, sockets, threads y procesos) deben cerrarse correctamente antes que el thread de la aplicación principal muera. Loguear mensajes en el cierre de cada recurso (hint: Verificar que hace el flag `-t` utilizado en el comando `docker compose down`).
+
+#### Resolución
+
+La primera parte de la resolución de este ejercicio consistió en incorporar un handler de la señal SIGTERM al servidor para cerrar el socket de bienvenida y en el caso de ser necesario, una conexión activa con un cliente en dicho momento. Para esto, se utilizo la biblioteca `signal` la cual nos permite con la función `signal.signal()` declarar una función (`__sigterm_handler()`) a ejecutar cuando se detecte este tipo de señal. Finalmente, para cerrar los _file descriptors_ anteriormente mencionados, se pasa a `__sigterm_handler()` una referencia al servidor para que cierre los mismo
+
+Por el lado del cliente se utilizo la biblioteca os.Signal, la cual nos permite crear un canal el cual recibirá las señales dirigidas al programa. De esta forma, en el bucle de ejecución del cliente, utilizando un `select` verificamos si se recibe una señal, ante lo cual se corta la ejecución del cliente y se termina el programa. Cabe mencionar que en este caso, no se cierra ningún filedescriptor, ya que el único que se abre durante la ejecución (el socket de comunicación) se cierra al final de cada loop de envío de mensajes.
+
+Para la ejecución del ejercicio primero se debe generar el archivo de docker-compose utilizando el commando `./generar-compose.sh <NOMBRE_DEL_ARCHIVO_DE_SALIDA> <CANTIDAD_DE_CLIENTES>`. A continuación se deben generar las imágenes de cada uno de los servicio utilizando el comando `make docker-image`. Finalmente se puede ejecutar el compose completo utilizando el commando `make docker-compose-up`
 
 ## Parte 2: Repaso de Comunicaciones
 
@@ -133,6 +168,50 @@ Se deberá implementar un módulo de comunicación entre el cliente y el servido
 * Correcta separación de responsabilidades entre modelo de dominio y capa de comunicación.
 * Correcto empleo de sockets, incluyendo manejo de errores y evitando los fenómenos conocidos como [_short read y short write_](https://cs61.seas.harvard.edu/site/2018/FileDescriptors/).
 
+#### Resolución
+
+La resolución de este ejercicio consistió en 4 partes:
+- Agregado de variables de entorno al generador de docker-compose
+- Estructura *Bet* del lado del cliente
+- Protocolo de comunicación
+- Lógica del dominio
+
+Para la primera parte, como su nombre lo indica, se agregaron las variable de entorno especificadas en la consigna al *script* de creación del docker-compose para disponer de esta información cuando se iniciara el cliente.
+
+A continuación se procedió a crear un objeto *Bet* dentro del cliente el cual contiene toda la información de una apuesta (Agencia desde donde se realiza la apuesta, Nombre del apostante, Apellido del apostante, Documento del apostante, Fecha de nacimiento del apostante y Numero apostado), junto con una función que permite a dicha estructura representarse en formato de bytes
+
+El formato en bytes de las *Bet*s fue definido de la siguiente forma:
+1. 4 bytes para el número de la agencia
+2. 1 byte que indican la longitud del nombre del apostante
+3. Una tira de entre 0 y 255 bytes que contiene el nombre del apostante (Esta longitud esta determinada por el "campo" anterior)
+4. 1 byte que indican la longitud del apellido del apostante
+5. Una tira de entre 0 y 255 bytes que contiene el apellido del apostante (Esta longitud esta determinada por el "campo" anterior)
+6. 4 bytes para el numero de documento del apostante
+7. 10 bytes para la fecha de nacimiento del apostante
+8. 4 bytes para el numero apostado
+
+Para la tercera parte del ejercicio se diseño el protocolo de comunicaciones entre los clientes y el servidor. Para mantener la sencillez de la  funcionalidad de nuestro sistema, donde el cliente envía una apuesta al servidor para que sea almacenada, se diseño un protocolo igual de sencillo:
+1. El cliente envía un paquete de *Bet* al servidor
+2. El servidor responde con un paquete de *Bet Response* al cliente
+
+De esta forma, se definieron los paquetes *Bet* y *Bet Response* los cuales son descritos a continuación:
+- ***Bet***: Contiene toda la información necesaria para realizar una apuesta en el servidor. Para esto se definen dos campos:
+    1. *Bet_size* (2 bytes): Indica la longitud en bytes de la representación en bytes de la apuesta enviada
+    2. *Bet* (0-534 bytes): Contiene la representación en bytes de la apuesta a realizar
+- ***Bet Response***: Contiene un código de confirmación indicando si se pudo realizar la apuesta o no. Para esto se define un campo:
+    - *Response_code* (2 bytes): 0 si no se logró concretar la apuesta. De lo contrario cualquier otro valor
+
+No obstante, para administrar el correcto manejo de los paquetes y la verificación de la correctitud de la información en los mismos, se diseñaron tres objetos, dos en el lado del servidor (`AgenciaQuiniela` y `AgenciaQuinielaListener`) y otro en el cliente (`CentralLoteriaNacional`), los cuales cumplen el rol de mantener la comunicación entre las aplicaciones.
+
+Por el lado del cliente, al crear la `CentralLoteriaNacional` se le pasa la dirección del servidor. Luego este objeto posee la interfaz `SendBet()` la cual se encarga de realizar la conexión con el servidor, crear el paquete *Bet* con la información de la apuesta a ser enviada, enviar el paquete, esperar la confirmación del servidor y finalmente cerrar la conexión.
+
+Por el lado del servidor, al crear un `AgenciaQuinielaListener` se le pasa el puerto en el que se va a estar escuchando por nuevas conexiones. Para realizar esta tarea, el objeto posee la función `accept_new_connection()` la cual se queda esperando a que entre una conexión y crea un objeto `AgenciaQuiniela` el cual contiene el socket a utilizar para realizar la comunicación con el nuevo cliente.
+
+Por su parte, `AgenciaQuiniela` provee la función `get_bet()` la cual permite leer del socket la información de una apuesta y en caso de ser posible crear un objeto *Bet* (Clase ya existente en el esqueleto del trabajo) con la información enviada. Adicionalmente se provee la función `confirm_bet()` la cual se utiliza para confirmar el estado de recepción de una apuesta por parte del servidor.
+
+Finalmente, teniendo todas las herramientas necesarias para hacerlo, se implemento la lógica de dominio pedida en la consigna. Para esto, al crear un cliente, se le pasa un `CentralLoteriaNacional` el cual utilizara para enviar la apuesta generada a partir de los valores de las variables de entorno. Por otro lado, el servidor al ser creado, ahora se le pasa un `AgenciaQuinielaListener` el cual utilizara para recibir las conexiones de los clientes como `AgenciaQuiniela`s, y así leer las apuestas enviadas, guardarlas utilizando la función provista por la cátedra `store_bet()`, y enviar la confirmación de dicha apuesta
+
+Para la ejecución del ejercicio primero se debe generar el archivo de docker-compose utilizando el commando `./generar-compose.sh <NOMBRE_DEL_ARCHIVO_DE_SALIDA> <CANTIDAD_DE_CLIENTES>`. A continuación se deben generar las imágenes de cada uno de los servicio utilizando el comando `make docker-image`. Finalmente se puede ejecutar el compose completo utilizando el commando `make docker-compose-up`.
 
 ### Ejercicio N°6:
 Modificar los clientes para que envíen varias apuestas a la vez (modalidad conocida como procesamiento por _chunks_ o _batchs_). 
@@ -146,6 +225,18 @@ En el servidor, si todas las apuestas del *batch* fueron procesadas correctament
 La cantidad máxima de apuestas dentro de cada _batch_ debe ser configurable desde config.yaml. Respetar la clave `batch: maxAmount`, pero modificar el valor por defecto de modo tal que los paquetes no excedan los 8kB. 
 
 Por su parte, el servidor deberá responder con éxito solamente si todas las apuestas del _batch_ fueron procesadas correctamente.
+
+### Resolución
+
+Para este ejercicio primero se decidió modificar el protocolo de comunicaciones entre el servidor y el cliente. Para esto se realizaron las siguientes modificaciones a los paquetes utilizados:
+- ***Bet***: Debe contener la información de multiples apuestas. Para esto, al comienzo del paquete se agrego el campo *amount_bets* (2 bytes) el cual indica la cantidad de apuestas que contiene el paquete. A continuación se van a encontrar *amount_bets* concatenaciones de los campos *bet_size* y *bet* explicados en la versión anterior del protocolo
+- ***Bet Response***: Ahora, en vez de transportar el código de confirmación de la versión anterior, contiene la cantidad de bets que pudieron ser procesadas
+
+Junto con estas modificaciones se realizaron las modificaciones pertinentes a los objetos que controlan la comunicaciones entre los servicios. Para esto se modificaron `CentralLoteriaNacional` y `AgenciaQuiniela` para que puedan serializar y deserializar una lista de apuestas, respectivamente.
+
+Finalmente se implemento la estructura `BetRepository` la cual se encarga de manejar las apuestas de los archivos montados a los contenedores de los clientes. Para esto, al crear el objeto se le pasa el path al archivo a leer, y se proveen la función `GetBets()` para la obtención de la cantidad de apuestas especificada por parámetro.
+
+Para la ejecución del ejercicio primero se debe generar el archivo de docker-compose utilizando el commando `./generar-compose.sh <NOMBRE_DEL_ARCHIVO_DE_SALIDA> <CANTIDAD_DE_CLIENTES>`. A continuación se deben generar las imágenes de cada uno de los servicio utilizando el comando `make docker-image`. Finalmente se puede ejecutar el compose completo utilizando el commando `make docker-compose-up`.
 
 ### Ejercicio N°7:
 

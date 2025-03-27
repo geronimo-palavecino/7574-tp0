@@ -28,7 +28,6 @@ class Server:
         if self._current_connection != None:
             self._current_connection.close()
             logging.info(f'action: graceful_shutdown | result: success | fd: Client socket')
-        sys.exit(0)
 
     def run(self):
         """
