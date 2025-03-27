@@ -9,6 +9,8 @@ import (
 	"github.com/op/go-logging"
 )
 
+const MAX_AMOUNT_TRIES = 3
+
 var log = logging.MustGetLogger("log")
 
 // ClientConfig Configuration used by the client
@@ -38,16 +40,21 @@ func NewClient(config ClientConfig) *Client {
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
 func (c *Client) createClientSocket() error {
-	conn, err := net.Dial("tcp", c.config.ServerAddress)
-	if err != nil {
-		log.Criticalf(
-			"action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
+	for tries := 1; tries <= MAX_AMOUNT_TRIES; tries++  {
+		conn, err := net.Dial("tcp", c.config.ServerAddress)
+		if err == nil {
+			c.conn = conn
+			return nil
+		}		
+
+		time.Sleep(500 * tries * time.Milliseconds)
 	}
-	c.conn = conn
-	return nil
+
+	log.Criticalf(
+		"action: connect | result: fail | client_id: %v | error: %v",
+		c.config.ID,
+		err,
+	)
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
