@@ -6,8 +6,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"time"
 )
 
+const MAX_AMOUNT_TRIES = 3
 // BET_SIZE_SIZE Represents the size in bytes of the bet size field in the packet
 const BET_SIZE_SIZE = 2
 // AMOUNT_BETS_SIZE Represents the size in bytes of the amount of bets field in the packet
@@ -42,8 +44,17 @@ func NewCentralLoteriaNacional(address string) CentralLoteriaNacional {
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
 func (c *CentralLoteriaNacional) CreateSocket() error {
-	conn, err := net.Dial("tcp", c.Address)
-	c.conn = conn
+	var err error
+	for tries := 1; tries <= MAX_AMOUNT_TRIES; tries ++ {
+		conn, err := net.Dial("tcp", c.Address)
+		if err == nil {
+			c.conn = conn
+			return err
+		}
+
+		time.Sleep(time.Duration(tries * 500) * time.Millisecond)
+	}
+	
 	return err
 }
 
