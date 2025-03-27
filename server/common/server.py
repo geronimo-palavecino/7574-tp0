@@ -17,6 +17,7 @@ class Connections:
 class Server:
     def __init__(self, listener, n_clients):
         # Initialize server socket
+        self._running = True
         self._listener = listener
         self._n_clients = n_clients
         self._connections = Connections()
@@ -31,6 +32,7 @@ class Server:
         When the application receives a SIGTERM signal, all the file descriptors 
         (welcoming socket, and client current socket) are closed for a graceful shutdown
         """
+        self._running = False
         self._listener.close()
         logging.info(f'action: graceful_shutdown | result: success | fd: Welcoming socket')
         for _, connection in self._connections._current_connections:
@@ -48,10 +50,16 @@ class Server:
         communication with a client. After client with communication
         finishes, servers starts to accept new connections again
         """
-        while True:
-            connection_id = self.__accept_new_connection()
-            worker = threading.Thread(target=self.__handle_client_connection, args=(connection_id, ))
-            worker.start()
+        while self._running:
+            try:
+                connection_id = self.__accept_new_connection()
+                worker = threading.Thread(target=self.__handle_client_connection, args=(connection_id, ))
+                worker.start()
+            except OSError as e:
+                if e.errno == 9 and not self._running:
+                    break
+                else:
+                    logging.error(f"action: unexpected_error | result: fail | error: {e}")
     
     def __handle_client_connection(self, connection_id):
         """
