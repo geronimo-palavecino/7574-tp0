@@ -9,6 +9,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._running = True
         self._current_connection = None
 
         # Setting the signal handler
@@ -21,6 +22,7 @@ class Server:
         When the application receives a SIGTERM signal, all the file descriptors 
         (welcoming socket, and client current socket) are closed for a graceful shutdown
         """
+        self._running = False
         self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
         logging.info(f'action: graceful_shutdown | result: success | fd: Welcoming socket')
@@ -38,7 +40,7 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        while True:
+        while self._running:
             client_sock = self.__accept_new_connection()
             self.__handle_client_connection(client_sock)
 
