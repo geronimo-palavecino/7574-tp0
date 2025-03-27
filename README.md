@@ -95,6 +95,8 @@ En el archivo de Docker Compose de salida se pueden definir volúmenes, variable
 
 #### Resolución
 
+**<ins>Aclaración</ins>**: Aunque para levantar el container del cliente se necesita que el container del servidor este levantado, por las diferentes velocidades en las que se ejecutan los procesos hay veces en las que el cliente intenta conectarse al servidor antes de que el servidor haya podido bindear el socket de bienvenida. Luego de consultar en clase (Clase presencial del dia 25/3) se me indicó junto con un par de compañeros mas, que para evitar este problema en los test y en la demo de la entrega, se agregara un mecanismo de re-conexión al cliente. Debido a esto, para la conexión del cliente se agrego un mecanismo de 3 re-intentos de re-conexión antes de mostrar el log de fallo en la conexión
+
 Para la resolución de este ejercicio se optó por crear un script de bash `generar-compose.sh` que recibe como argumentos los parámetros indicados en la consigna, y luego ejecuta un script de python llamado `mi-generador.py` utilizando dichos parámetros. Esto es debido a que considero que es mucho mas fácil (Y poseo mayor familiaridad) el manejo de archivos en python que con el uso de bash.
 
 Para el script de python se definieron 4 constantes las cuales representan los diferentes artefactos dentro del docker-compose a ser creado:
